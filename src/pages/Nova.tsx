@@ -43,9 +43,10 @@ function Nova() {
             <button
               type="button"
               className="nova-back"
+              aria-label="Go back"
               onClick={() => navigate('/app/teen')}
             >
-              ← Home
+              ←
             </button>
 
             <div className="nova-brand">

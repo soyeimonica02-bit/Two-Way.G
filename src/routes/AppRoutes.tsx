@@ -131,6 +131,17 @@ export default function AppRoutes() {
         element={<MoodReflection />}
       />
 
+      {/* Legacy mood history redirect */}
+      <Route
+        path="/app/teen/mood-history"
+        element={
+          <Navigate
+            to="/app/teen/mood-reflection"
+            replace
+          />
+        }
+      />
+
 
       {/* =========================================
           MY HAVEN
@@ -144,6 +155,12 @@ export default function AppRoutes() {
       {/* My Haven Journal */}
       <Route
         path="/app/teen/haven/journal"
+        element={<HavenJournal />}
+      />
+
+      {/* Haven thoughts route */}
+      <Route
+        path="/app/teen/haven/thoughts"
         element={<HavenJournal />}
       />
 

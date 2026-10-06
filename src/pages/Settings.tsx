@@ -13,9 +13,10 @@ function Settings() {
         <header className="settings-header">
           <button
             type="button"
+            aria-label="Go back"
             onClick={() => navigate('/app/teen')}
           >
-            ← Back
+            ←
           </button>
 
           <span>SETTINGS</span>

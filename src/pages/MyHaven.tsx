@@ -119,7 +119,7 @@ function MyHaven() {
               type="button"
               onClick={() =>
                 navigate(
-                  '/app/teen/haven/thoughts',
+                  '/app/teen/haven/journal',
                 )
               }
             >

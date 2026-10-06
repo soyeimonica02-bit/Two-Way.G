@@ -17,9 +17,10 @@ function MyCircle() {
           <button
             type="button"
             className="circle-back"
+            aria-label="Go back"
             onClick={() => navigate('/app/teen')}
           >
-            ← Back
+            ←
           </button>
 
           <div className="circle-header-title">

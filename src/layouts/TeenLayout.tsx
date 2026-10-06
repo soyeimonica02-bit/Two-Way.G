@@ -21,10 +21,10 @@ function TeenLayout({ children }: TeenLayoutProps) {
           DESKTOP HEADER
       ========================================= */}
 
-      <header className="teen-header">
+      <header className="teen-layout-header teen-header">
         <NavLink
           to="/app/teen"
-          className="teen-brand"
+          className="teen-layout-brand teen-brand"
         >
           <img
             src="/favicon.svg"
@@ -39,10 +39,12 @@ function TeenLayout({ children }: TeenLayoutProps) {
 
         <NavLink
           to="/app/teen/profile"
-          className="teen-profile-link"
+          className="teen-layout-profile teen-profile-link"
+          aria-label="Profile"
+          title="Profile"
         >
-          <span className="teen-profile-avatar">
-            You
+          <span className="teen-profile-avatar" aria-hidden="true">
+            ◯
           </span>
         </NavLink>
       </header>
@@ -62,7 +64,7 @@ function TeenLayout({ children }: TeenLayoutProps) {
       ========================================= */}
 
       <nav
-        className="teen-mobile-nav"
+        className="teen-layout-nav teen-mobile-nav"
         aria-label="Main navigation"
       >
 
@@ -75,7 +77,7 @@ function TeenLayout({ children }: TeenLayoutProps) {
             }`
           }
         >
-          <span className="teen-mobile-nav-icon">
+          <span className="teen-layout-nav-icon teen-mobile-nav-icon">
             ⌂
           </span>
 
@@ -91,7 +93,7 @@ function TeenLayout({ children }: TeenLayoutProps) {
             isChatsActive ? 'is-active' : ''
           }`}
         >
-          <span className="teen-mobile-nav-icon">
+          <span className="teen-layout-nav-icon teen-mobile-nav-icon">
             ○
           </span>
 
@@ -109,7 +111,7 @@ function TeenLayout({ children }: TeenLayoutProps) {
             }`
           }
         >
-          <span className="teen-mobile-nav-icon">
+          <span className="teen-layout-nav-icon teen-mobile-nav-icon">
             ✦
           </span>
 
@@ -121,16 +123,13 @@ function TeenLayout({ children }: TeenLayoutProps) {
 
         <NavLink
           to="/app/teen/profile"
+          aria-label="Profile"
           className={`teen-mobile-nav-item ${
             isYouActive ? 'is-active' : ''
           }`}
         >
-          <span className="teen-mobile-nav-icon">
+          <span className="teen-layout-nav-icon teen-mobile-nav-icon">
             ◯
-          </span>
-
-          <span>
-            You
           </span>
         </NavLink>
 

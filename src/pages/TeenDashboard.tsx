@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import TeenLayout from '../layouts/TeenLayout';
@@ -8,7 +9,7 @@ function TeenDashboard() {
   const name =
     localStorage.getItem('twoway_profile_name') ||
     localStorage.getItem('twoway_demo_name') ||
-    'You';
+    'there';
 
   const moodOptions = [
     { key: 'good', emoji: '🙂', label: 'Good' },
@@ -18,10 +19,21 @@ function TeenDashboard() {
     { key: 'anxious', emoji: '😟', label: 'Anxious' },
   ];
 
-  const todayMood = localStorage.getItem('twoway_today_mood');
+  const now = new Date();
+  const todayCalendarKey = `twoway_mood_${now.getFullYear()}_${now.getMonth()}_${now.getDate()}`;
+
+  const [todayMood, setTodayMood] = useState<string | null>(() => {
+    return (
+      localStorage.getItem('twoway_today_mood') ||
+      localStorage.getItem(todayCalendarKey) ||
+      null
+    );
+  });
 
   const handleMoodSelect = (mood: string) => {
     localStorage.setItem('twoway_today_mood', mood);
+    localStorage.setItem(todayCalendarKey, mood);
+    setTodayMood(mood);
   };
 
   return (
@@ -287,7 +299,7 @@ function TeenDashboard() {
               type="button"
               className="teen-world-card"
               onClick={() =>
-                navigate('/app/teen/mood-history')
+                navigate('/app/teen/mood-reflection')
               }
             >
               <span className="teen-world-number">
@@ -295,11 +307,11 @@ function TeenDashboard() {
               </span>
 
               <h3>
-                Mood History
+                Mood Reflection
               </h3>
 
               <p>
-                Look back at how you've felt.
+                Pause, reflect, and understand how you're feeling.
               </p>
 
               <span className="teen-world-arrow">

@@ -1,10 +1,12 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export default function HavenJournal() {
+  const navigate = useNavigate();
   const [entry, setEntry] = useState('');
 
   const goBack = () => {
-    window.history.back();
+    navigate('/app/teen/haven');
   };
 
   return (
@@ -16,9 +18,10 @@ export default function HavenJournal() {
           <button
             type="button"
             className="haven-journal-back"
+            aria-label="Go back"
             onClick={goBack}
           >
-            ← Back
+            ←
           </button>
 
           <div className="haven-journal-title">

@@ -122,6 +122,20 @@ function EmotionalCalendar() {
         }
       }
 
+      const todayDate = today.getDate();
+      if (!savedEntries[todayDate]) {
+        const todayMood = localStorage.getItem('twoway_today_mood') as Mood | null;
+        if (todayMood) {
+          savedEntries[todayDate] = {
+            mood: todayMood,
+            note:
+              localStorage.getItem(
+                `twoway_note_${year}_${month}_${todayDate}`,
+              ) || '',
+          };
+        }
+      }
+
       return savedEntries;
     });
 
@@ -165,6 +179,10 @@ function EmotionalCalendar() {
       note.trim(),
     );
 
+    if (selectedDay === today.getDate()) {
+      localStorage.setItem('twoway_today_mood', selectedMood);
+    }
+
     setEntries((previous) => ({
       ...previous,
       [selectedDay]: entry,
@@ -183,22 +201,15 @@ function EmotionalCalendar() {
   /*
    * Build calendar.
    */
-  const calendarDays = [];
+  const emptyDays = Array.from({ length: firstDay }, (_, i) => (
+    <div
+      key={`empty-${i}`}
+      className="emotional-calendar-day empty"
+    />
+  ));
 
-  for (let i = 0; i < firstDay; i += 1) {
-    calendarDays.push(
-      <div
-        key={`empty-${i}`}
-        className="emotional-calendar-day empty"
-      />,
-    );
-  }
-
-  for (
-    let day = 1;
-    day <= daysInMonth;
-    day += 1
-  ) {
+  const monthDays = Array.from({ length: daysInMonth }, (_, index) => {
+    const day = index + 1;
     const savedEntry = entries[day];
 
     const mood = savedEntry
@@ -208,7 +219,7 @@ function EmotionalCalendar() {
         )
       : null;
 
-    calendarDays.push(
+    return (
       <button
         key={day}
         type="button"
@@ -238,9 +249,11 @@ function EmotionalCalendar() {
         {savedEntry && (
           <span className="emotional-calendar-entry-dot" />
         )}
-      </button>,
+      </button>
     );
-  }
+  });
+
+  const calendarDays = [...emptyDays, ...monthDays];
 
   return (
     <main className="emotional-calendar-page">
@@ -421,24 +434,24 @@ function EmotionalCalendar() {
 
             {/* NOTE */}
 
-            <div className="emotional-calendar-note">
+            {selectedMood && (
+              <div className="emotional-calendar-note">
+                <label htmlFor="mood-note">
+                  YOUR NOTE
+                </label>
 
-              <label htmlFor="mood-note">
-                YOUR NOTE
-              </label>
-
-              <textarea
-                id="mood-note"
-                value={note}
-                onChange={(event) =>
-                  setNote(
-                    event.target.value,
-                  )
-                }
-                placeholder="Write anything you want to remember about today..."
-              />
-
-            </div>
+                <textarea
+                  id="mood-note"
+                  value={note}
+                  onChange={(event) =>
+                    setNote(
+                      event.target.value,
+                    )
+                  }
+                  placeholder="Write anything you want to remember about today..."
+                />
+              </div>
+            )}
 
 
             {/* MOTIVATION */}

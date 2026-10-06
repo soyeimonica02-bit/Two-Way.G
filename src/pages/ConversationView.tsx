@@ -18,11 +18,12 @@ function ConversationView() {
           <button
             type="button"
             className="conversation-view-back"
+            aria-label="Go back"
             onClick={() =>
               navigate('/app/teen/conversations')
             }
           >
-            ← Back
+            ←
           </button>
 
           <div className="conversation-view-title">

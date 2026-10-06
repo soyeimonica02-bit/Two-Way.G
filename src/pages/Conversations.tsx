@@ -13,9 +13,10 @@ function Conversation() {
 
             <button
               className="tw-button tw-button-ghost"
-              onClick={() => navigate('/app/teen/conversations')}
+              aria-label="Go back"
+              onClick={() => navigate('/app/teen')}
             >
-              ← Conversations
+              ←
             </button>
 
             <div>

@@ -13,9 +13,10 @@ function Profile() {
         <header className="profile-header">
           <button
             type="button"
+            aria-label="Go back"
             onClick={() => navigate('/app/teen')}
           >
-            ← Back
+            ←
           </button>
 
           <span>PROFILE</span>
