@@ -14,6 +14,7 @@ import MoodReflection from '../pages/MoodReflection';
 
 import MyHaven from '../pages/MyHaven';
 import HavenJournal from '../pages/HavenJournal';
+import HavenThoughts from '../pages/HavenThoughts';
 import MyCircle from '../pages/MyCircle';
 
 import Conversations from '../pages/Conversations';
@@ -21,6 +22,13 @@ import ConversationView from '../pages/ConversationView';
 
 import Profile from '../pages/Profile';
 import Settings from '../pages/Settings';
+import SettingsEmail from '../pages/SettingsEmail';
+import SettingsPrivacy from '../pages/SettingsPrivacy';
+import SettingsHaven from '../pages/SettingsHaven';
+import SettingsNotifications from '../pages/SettingsNotifications';
+import SettingsAppearance from '../pages/SettingsAppearance';
+import SettingsHelp from '../pages/SettingsHelp';
+import SettingsAbout from '../pages/SettingsAbout';
 
 export default function AppRoutes() {
   return (
@@ -161,7 +169,7 @@ export default function AppRoutes() {
       {/* Haven thoughts route */}
       <Route
         path="/app/teen/haven/thoughts"
-        element={<HavenJournal />}
+        element={<HavenThoughts />}
       />
 
 
@@ -176,7 +184,7 @@ export default function AppRoutes() {
 
 
       {/* =========================================
-          CONVERSATIONS
+          CLARITY / CONVERSATIONS
       ========================================= */}
 
       <Route
@@ -184,9 +192,19 @@ export default function AppRoutes() {
         element={<Conversations />}
       />
 
+      <Route
+        path="/app/teen/clarity"
+        element={<Conversations />}
+      />
+
       {/* Single conversation route */}
       <Route
         path="/app/teen/conversations/:conversationId"
+        element={<ConversationView />}
+      />
+
+      <Route
+        path="/app/teen/clarity/:conversationId"
         element={<ConversationView />}
       />
 
@@ -202,12 +220,52 @@ export default function AppRoutes() {
 
 
       {/* =========================================
-          SETTINGS
+          SETTINGS & SUBPAGES
       ========================================= */}
 
       <Route
         path="/app/teen/settings"
         element={<Settings />}
+      />
+
+      <Route
+        path="/app/teen/settings/profile"
+        element={<Navigate to="/app/teen/profile" replace />}
+      />
+
+      <Route
+        path="/app/teen/settings/email"
+        element={<SettingsEmail />}
+      />
+
+      <Route
+        path="/app/teen/settings/privacy"
+        element={<SettingsPrivacy />}
+      />
+
+      <Route
+        path="/app/teen/settings/haven"
+        element={<SettingsHaven />}
+      />
+
+      <Route
+        path="/app/teen/settings/notifications"
+        element={<SettingsNotifications />}
+      />
+
+      <Route
+        path="/app/teen/settings/appearance"
+        element={<SettingsAppearance />}
+      />
+
+      <Route
+        path="/app/teen/settings/help"
+        element={<SettingsHelp />}
+      />
+
+      <Route
+        path="/app/teen/settings/about"
+        element={<SettingsAbout />}
       />
 
 

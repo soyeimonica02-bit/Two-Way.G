@@ -27,7 +27,7 @@ function ConversationView() {
           </button>
 
           <div className="conversation-view-title">
-            <span>CONVERSATION</span>
+            <span>CLARITY</span>
 
             <h1>
               {conversationId || 'Conversation'}
@@ -175,7 +175,7 @@ function ConversationView() {
               navigate('/app/teen/conversations')
             }
           >
-            All conversations
+            Back to Clarity
           </button>
 
         </footer>

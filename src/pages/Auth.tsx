@@ -10,6 +10,9 @@ export default function Auth() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [gender, setGender] = useState('')
+  const [pronouns, setPronouns] = useState('')
+  const [customPronouns, setCustomPronouns] = useState('')
   const [error, setError] = useState('')
 
   const selectedRole = localStorage.getItem('twoway_selected_role')
@@ -94,6 +97,30 @@ export default function Auth() {
       )
     }
 
+    if (gender) {
+      localStorage.setItem(
+        'twoway_registered_gender',
+        gender
+      )
+      localStorage.setItem('twoway_profile_gender', gender)
+    } else {
+      localStorage.removeItem('twoway_registered_gender')
+    }
+
+    const effectivePronouns = pronouns === 'Custom' ? customPronouns.trim() : pronouns
+    if (effectivePronouns) {
+      localStorage.setItem(
+        'twoway_registered_pronouns',
+        effectivePronouns
+      )
+      localStorage.setItem(
+        'twoway_profile_pronouns',
+        effectivePronouns
+      )
+    } else {
+      localStorage.removeItem('twoway_registered_pronouns')
+    }
+
     localStorage.setItem('twoway_email_verified', 'false')
 
     navigate('/verify-email')
@@ -119,6 +146,7 @@ export default function Auth() {
           >
             <button
               type="button"
+              aria-label="Go back"
               onClick={() => navigate('/roles')}
               style={{
                 border: 'none',
@@ -126,10 +154,11 @@ export default function Auth() {
                 padding: 0,
                 marginBottom: '32px',
                 cursor: 'pointer',
-                fontSize: '0.9rem',
+                fontSize: '1.2rem',
+                fontWeight: 700,
               }}
             >
-              ← Back
+              ←
             </button>
 
             <div style={{ marginBottom: '32px' }}>
@@ -265,42 +294,158 @@ export default function Auth() {
               </div>
 
               {!isLogin && (
-                <div style={{ marginBottom: '18px' }}>
-                  <label
-                    htmlFor="confirmPassword"
-                    style={{
-                      display: 'block',
-                      marginBottom: '8px',
-                      fontSize: '0.9rem',
-                      fontWeight: 700,
-                    }}
-                  >
-                    Confirm password
-                  </label>
+                <>
+                  <div style={{ marginBottom: '18px' }}>
+                    <label
+                      htmlFor="confirmPassword"
+                      style={{
+                        display: 'block',
+                        marginBottom: '8px',
+                        fontSize: '0.9rem',
+                        fontWeight: 700,
+                      }}
+                    >
+                      Confirm password
+                    </label>
 
-                  <input
-                    id="confirmPassword"
-                    type="password"
-                    autoComplete="new-password"
-                    value={confirmPassword}
-                    onChange={(event) => {
-                      setConfirmPassword(event.target.value)
-                      setError('')
-                    }}
-                    placeholder="Enter your password again"
-                    style={{
-                      width: '100%',
-                      boxSizing: 'border-box',
-                      padding: '14px',
-                      border: '2px solid var(--tw-border)',
-                      borderRadius: '10px',
-                      background: 'var(--tw-background)',
-                      color: 'var(--tw-text)',
-                      fontSize: '1rem',
-                      outline: 'none',
-                    }}
-                  />
-                </div>
+                    <input
+                      id="confirmPassword"
+                      type="password"
+                      autoComplete="new-password"
+                      value={confirmPassword}
+                      onChange={(event) => {
+                        setConfirmPassword(event.target.value)
+                        setError('')
+                      }}
+                      placeholder="Enter your password again"
+                      style={{
+                        width: '100%',
+                        boxSizing: 'border-box',
+                        padding: '14px',
+                        border: '2px solid var(--tw-border)',
+                        borderRadius: '10px',
+                        background: 'var(--tw-background)',
+                        color: 'var(--tw-text)',
+                        fontSize: '1rem',
+                        outline: 'none',
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: '18px' }}>
+                    <label
+                      htmlFor="pronouns"
+                      style={{
+                        display: 'block',
+                        marginBottom: '8px',
+                        fontSize: '0.9rem',
+                        fontWeight: 700,
+                      }}
+                    >
+                      Pronouns{' '}
+                      <span
+                        style={{
+                          fontWeight: 400,
+                          color: 'var(--tw-text-secondary)',
+                          fontSize: '0.82rem',
+                        }}
+                      >
+                        (Optional)
+                      </span>
+                    </label>
+
+                    <select
+                      id="pronouns"
+                      value={pronouns}
+                      onChange={(event) => setPronouns(event.target.value)}
+                      style={{
+                        width: '100%',
+                        boxSizing: 'border-box',
+                        padding: '14px',
+                        border: '2px solid var(--tw-border)',
+                        borderRadius: '10px',
+                        background: 'var(--tw-background)',
+                        color: 'var(--tw-text)',
+                        fontSize: '1rem',
+                        outline: 'none',
+                      }}
+                    >
+                      <option value="">Select pronouns (or skip)</option>
+                      <option value="She/her">She/her</option>
+                      <option value="He/him">He/him</option>
+                      <option value="They/them">They/them</option>
+                      <option value="Prefer not to say">Prefer not to say</option>
+                      <option value="Custom">Custom / Enter your own</option>
+                    </select>
+
+                    {pronouns === 'Custom' && (
+                      <input
+                        type="text"
+                        value={customPronouns}
+                        onChange={(event) => setCustomPronouns(event.target.value)}
+                        placeholder="Enter your pronouns (e.g. ze/zir, she/they)"
+                        style={{
+                          width: '100%',
+                          boxSizing: 'border-box',
+                          marginTop: '8px',
+                          padding: '12px 14px',
+                          border: '2px solid var(--tw-border)',
+                          borderRadius: '10px',
+                          background: 'var(--tw-background)',
+                          color: 'var(--tw-text)',
+                          fontSize: '0.95rem',
+                          outline: 'none',
+                        }}
+                      />
+                    )}
+                  </div>
+
+                  <div style={{ marginBottom: '18px' }}>
+                    <label
+                      htmlFor="gender"
+                      style={{
+                        display: 'block',
+                        marginBottom: '8px',
+                        fontSize: '0.9rem',
+                        fontWeight: 700,
+                      }}
+                    >
+                      Gender{' '}
+                      <span
+                        style={{
+                          fontWeight: 400,
+                          color: 'var(--tw-text-secondary)',
+                          fontSize: '0.82rem',
+                        }}
+                      >
+                        (Optional)
+                      </span>
+                    </label>
+
+                    <select
+                      id="gender"
+                      value={gender}
+                      onChange={(event) => setGender(event.target.value)}
+                      style={{
+                        width: '100%',
+                        boxSizing: 'border-box',
+                        padding: '14px',
+                        border: '2px solid var(--tw-border)',
+                        borderRadius: '10px',
+                        background: 'var(--tw-background)',
+                        color: 'var(--tw-text)',
+                        fontSize: '1rem',
+                        outline: 'none',
+                      }}
+                    >
+                      <option value="">Select gender</option>
+                      <option value="Female">Female</option>
+                      <option value="Male">Male</option>
+                      <option value="Non-binary">Non-binary</option>
+                      <option value="Prefer not to say">Prefer not to say</option>
+                    </select>
+                  </div>
+                </>
               )}
 
               {error && (
@@ -323,8 +468,8 @@ export default function Auth() {
                   padding: '14px 18px',
                   border: '2px solid var(--tw-border)',
                   borderRadius: '10px',
-                  background: '#6366f1',
-                  color: '#ffffff',
+                  background: 'var(--tw-primary)',
+                  color: 'var(--tw-primary-text, #ffffff)',
                   fontSize: '0.95rem',
                   fontWeight: 800,
                   cursor: 'pointer',

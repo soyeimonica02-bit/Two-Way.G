@@ -3,6 +3,10 @@ import { createRoot } from 'react-dom/client';
 
 import App from './App';
 import './styles/globals.css';
+import { initTheme } from './utils/themePalettes';
+
+// Initialize saved theme immediately to prevent color flashes
+initTheme();
 
 const rootElement = document.getElementById('root');
 

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-
-type MoodKey = 'good' | 'okay' | 'low' | 'frustrated' | 'anxious';
+import { useMood } from '../context/useMood';
+import type { MoodKey } from '../utils/moodStorage';
 
 interface MoodInfo {
   emoji: string;
@@ -58,29 +58,19 @@ const moodDetails: Record<MoodKey, MoodInfo> = {
 function MoodReflection() {
   const navigate = useNavigate();
 
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = today.getMonth();
-  const day = today.getDate();
+  const { todayEntry, todayKey, saveEntry } = useMood();
 
+  const today = new Date();
   const dateLabel = today.toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
   });
 
-  const calendarMoodKey = `twoway_mood_${year}_${month}_${day}`;
-  const calendarNoteKey = `twoway_note_${year}_${month}_${day}`;
-  const reflectionStorageKey = `twoway_reflection_${year}_${month}_${day}`;
+  const reflectionStorageKey = `twoway_reflection_${todayKey}`;
 
-  const [currentMood, setCurrentMood] = useState<MoodKey | null>(() => {
-    const raw =
-      localStorage.getItem(calendarMoodKey) ||
-      localStorage.getItem('twoway_today_mood');
-    return (raw as MoodKey) || null;
-  });
-
-  const savedNote = localStorage.getItem(calendarNoteKey) || '';
+  const currentMood = todayEntry?.mood || null;
+  const savedNote = todayEntry?.note || '';
 
   const [reflection, setReflection] = useState(() => {
     return localStorage.getItem(reflectionStorageKey) || '';
@@ -89,9 +79,11 @@ function MoodReflection() {
   const [savedFeedback, setSavedFeedback] = useState(false);
 
   const handleQuickMoodSelect = (mood: MoodKey) => {
-    setCurrentMood(mood);
-    localStorage.setItem('twoway_today_mood', mood);
-    localStorage.setItem(calendarMoodKey, mood);
+    saveEntry({
+      date: todayKey,
+      mood: mood,
+      note: savedNote,
+    });
   };
 
   const handleSaveReflection = () => {
@@ -221,11 +213,15 @@ function MoodReflection() {
                     type="button"
                     onClick={() => handleQuickMoodSelect(key)}
                     style={{
-                      padding: '8px 12px',
-                      border: '1px solid #111111',
-                      borderRadius: '6px',
-                      background: '#ffffff',
+                      padding: '10px 16px',
+                      border: '2.5px solid var(--tw-border)',
+                      borderRadius: '12px',
+                      background: 'var(--tw-surface)',
+                      color: 'var(--tw-text)',
+                      fontWeight: 800,
+                      boxShadow: '2.5px 2.5px 0px var(--tw-border)',
                       cursor: 'pointer',
+                      transition: 'transform 120ms ease, box-shadow 120ms ease',
                     }}
                   >
                     {moodDetails[key].emoji} {moodDetails[key].label}
@@ -327,7 +323,7 @@ function MoodReflection() {
 
           <p
             style={{
-              color: '#626779',
+              color: 'var(--tw-text-muted)',
               fontSize: '0.9rem',
               marginBottom: '18px',
             }}
@@ -337,9 +333,11 @@ function MoodReflection() {
 
           <div
             style={{
-              border: '1px solid #111111',
-              background: '#ffffff',
-              padding: '16px',
+              border: '2.5px solid var(--tw-border)',
+              borderRadius: '16px',
+              background: 'var(--tw-surface)',
+              boxShadow: '4px 4px 0px var(--tw-border)',
+              padding: '20px',
             }}
           >
             <textarea
@@ -348,15 +346,17 @@ function MoodReflection() {
               placeholder="Write your reflection here..."
               style={{
                 width: '100%',
-                minHeight: '130px',
-                border: 'none',
+                minHeight: '140px',
+                border: '2px solid var(--tw-border)',
+                borderRadius: '12px',
                 outline: 'none',
                 resize: 'vertical',
-                background: 'transparent',
+                background: 'var(--tw-surface-soft)',
                 fontFamily: 'inherit',
-                fontSize: '0.95rem',
+                fontSize: '0.98rem',
                 lineHeight: 1.6,
-                color: '#111111',
+                color: 'var(--tw-text)',
+                padding: '14px',
               }}
             />
 
@@ -367,20 +367,24 @@ function MoodReflection() {
                 justifyContent: 'space-between',
                 marginTop: '14px',
                 paddingTop: '12px',
-                borderTop: '1px solid #e8e8e3',
+                borderTop: '2px solid var(--tw-border)',
               }}
             >
               <button
                 type="button"
                 onClick={handleSaveReflection}
                 style={{
-                  background: '#111111',
-                  color: '#ffffff',
-                  padding: '10px 18px',
-                  borderRadius: '6px',
-                  fontWeight: 700,
-                  fontSize: '0.85rem',
+                  background: 'var(--tw-primary)',
+                  color: 'var(--tw-primary-text, #ffffff)',
+                  border: '2.5px solid var(--tw-border)',
+                  padding: '12px 24px',
+                  borderRadius: '12px',
+                  fontWeight: 900,
+                  fontSize: '0.82rem',
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
                   cursor: 'pointer',
+                  boxShadow: '2.5px 2.5px 0px var(--tw-border)',
                 }}
               >
                 Save reflection
@@ -389,9 +393,9 @@ function MoodReflection() {
               {savedFeedback && (
                 <span
                   style={{
-                    color: '#22a06b',
+                    color: 'var(--tw-primary)',
                     fontSize: '0.85rem',
-                    fontWeight: 600,
+                    fontWeight: 800,
                   }}
                 >
                   ✓ Saved to your private space

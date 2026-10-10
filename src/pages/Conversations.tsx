@@ -9,36 +9,46 @@ function Conversation() {
 
         {/* HEADER */}
         <header className="tw-page-header">
-          <div className="tw-page-header-content">
-
+          <div
+            className="tw-page-header-content"
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '16px',
+            }}
+          >
             <button
               className="tw-button tw-button-ghost"
               aria-label="Go back"
               onClick={() => navigate('/app/teen')}
+              style={{
+                marginLeft: '-14px',
+                minWidth: '42px',
+                height: '42px',
+                padding: '0 12px',
+                fontSize: '1.2rem',
+                display: 'grid',
+                placeItems: 'center',
+                flexShrink: 0,
+              }}
             >
               ←
             </button>
 
             <div>
-              <span className="tw-badge tw-badge-primary">
-                PRIVATE DRAFT
-              </span>
+              <h1 style={{ marginTop: '0px' }}>Clarity</h1>
 
-              <h1>Your conversation</h1>
-
-              <p className="text-secondary">
+              <p className="text-secondary" style={{ marginTop: '4px' }}>
                 Say what you actually mean.
               </p>
             </div>
-
           </div>
         </header>
 
 
         {/* STEP INDICATOR */}
-        <section className="tw-card">
+        <section className="tw-card" style={{ marginTop: '20px' }}>
           <div style={{ padding: '22px' }}>
-
             <span className="text-muted">
               YOUR PROCESS
             </span>
@@ -84,7 +94,6 @@ function Conversation() {
                 </div>
               ))}
             </div>
-
           </div>
         </section>
 
@@ -95,9 +104,8 @@ function Conversation() {
           style={{ marginTop: '20px' }}
         >
           <div style={{ padding: '28px' }}>
-
             <span className="tw-badge tw-badge-primary">
-              01 · EXPRESS
+              EXPRESS
             </span>
 
             <h2 style={{ marginTop: '14px' }}>
@@ -132,15 +140,15 @@ function Conversation() {
               }}
             >
               <button
+                type="button"
                 className="tw-button tw-button-primary"
                 onClick={() => {
-                  // Nova understanding step will be connected later.
+                  // Nova understanding step connection
                 }}
               >
-                Continue →
+                Continue
               </button>
             </div>
-
           </div>
         </section>
 
@@ -154,7 +162,6 @@ function Conversation() {
           }}
         >
           <div style={{ padding: '26px' }}>
-
             <span className="text-muted">
               NOVA
             </span>
@@ -176,13 +183,13 @@ function Conversation() {
             </p>
 
             <button
+              type="button"
               className="tw-button tw-button-secondary"
               style={{ marginTop: '18px' }}
               onClick={() => navigate('/app/teen/nova')}
             >
               Open Nova
             </button>
-
           </div>
         </section>
 

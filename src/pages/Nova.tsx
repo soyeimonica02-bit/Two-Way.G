@@ -1,35 +1,171 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
 import TeenLayout from '../layouts/TeenLayout';
+
+interface NovaMessage {
+  id: string;
+  role: 'user' | 'nova';
+  text: string;
+  timestamp: number;
+}
+
+interface NovaConversation {
+  id: string;
+  title: string;
+  messages: NovaMessage[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+const STORAGE_KEY = 'twoway_nova_conversations';
+const ACTIVE_ID_KEY = 'twoway_nova_active_id';
+
+function generateNovaReply(userText: string): string {
+  const lower = userText.toLowerCase();
+  if (
+    lower.includes('anxious') ||
+    lower.includes('scared') ||
+    lower.includes('worry') ||
+    lower.includes('nervous')
+  ) {
+    return "It makes total sense that you're feeling nervous. When anxiety kicks in, everything feels urgent. Take a slow breath—what is the one core thing you want the other person to understand?";
+  }
+  if (
+    lower.includes('mad') ||
+    lower.includes('angry') ||
+    lower.includes('frustrated') ||
+    lower.includes('unfair')
+  ) {
+    return "Frustration usually means a boundary was crossed or you didn't feel heard. Let's step back for a second: what actually caused that feeling, and how can we say it without sparking a fight?";
+  }
+  if (
+    lower.includes('sad') ||
+    lower.includes('low') ||
+    lower.includes('alone') ||
+    lower.includes('hurt')
+  ) {
+    return "I hear you. When you're feeling hurt or down, finding the words can take a lot of energy. You don't need a perfect speech—what's one simple sentence that describes how things feel right now?";
+  }
+  if (
+    lower.includes('parent') ||
+    lower.includes('mom') ||
+    lower.includes('dad')
+  ) {
+    return "Talking to parents about difficult topics is tough because reactions can be unpredictable. What do you wish they would understand before you even start the conversation?";
+  }
+  return "I'm here with you. What feels like the hardest part to put into words right now?";
+}
+
+function createUniqueId(prefix: string): string {
+  return `${prefix}_${Date.now()}`;
+}
+
+function getCurrentTimestamp(): number {
+  return Date.now();
+}
+
+function getCurrentISODate(): string {
+  return new Date().toISOString();
+}
 
 function Nova() {
   const navigate = useNavigate();
 
-  const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState<
-    { role: 'user' | 'nova'; text: string }[]
-  >([]);
+  // Load conversations from localStorage (only user-created ones)
+  const [conversations, setConversations] = useState<NovaConversation[]>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        return JSON.parse(raw);
+      }
+    } catch (e) {
+      console.error('Error loading Nova conversations:', e);
+    }
+    return [];
+  });
 
-  const sendMessage = () => {
-    const trimmed = message.trim();
+  const [activeId, setActiveId] = useState<string | null>(() => {
+    return localStorage.getItem(ACTIVE_ID_KEY) || null;
+  });
 
-    if (!trimmed) return;
+  const [inputMessage, setInputMessage] = useState('');
+  const [mobileHistoryOpen, setMobileHistoryOpen] = useState(false);
 
-    setMessages((current) => [
-      ...current,
-      {
-        role: 'user',
-        text: trimmed,
-      },
-      {
-        role: 'nova',
-        text:
-          "I'm here with you. Tell me a little more about what's going on, and we'll work through it together.",
-      },
-    ]);
+  // Sync to localStorage
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
+  }, [conversations]);
 
-    setMessage('');
+  useEffect(() => {
+    if (activeId) {
+      localStorage.setItem(ACTIVE_ID_KEY, activeId);
+    } else {
+      localStorage.removeItem(ACTIVE_ID_KEY);
+    }
+  }, [activeId]);
+
+  // Current active conversation
+  const currentConversation = conversations.find((c) => c.id === activeId) || null;
+  const messages = currentConversation ? currentConversation.messages : [];
+
+  const handleStartNewConversation = () => {
+    setActiveId(null);
+    setInputMessage('');
+    setMobileHistoryOpen(false);
+  };
+
+  const handleSelectConversation = (id: string) => {
+    setActiveId(id);
+    setInputMessage('');
+    setMobileHistoryOpen(false);
+  };
+
+  const handleSendMessage = () => {
+    const text = inputMessage.trim();
+    if (!text) return;
+
+    const now = getCurrentTimestamp();
+    const userMsg: NovaMessage = {
+      id: createUniqueId('msg_u'),
+      role: 'user',
+      text,
+      timestamp: now,
+    };
+
+    const novaReplyText = generateNovaReply(text);
+    const novaMsg: NovaMessage = {
+      id: createUniqueId('msg_n'),
+      role: 'nova',
+      text: novaReplyText,
+      timestamp: now + 1,
+    };
+
+    if (currentConversation) {
+      // Continue existing conversation
+      const updatedMessages = [...currentConversation.messages, userMsg, novaMsg];
+      const updatedConv: NovaConversation = {
+        ...currentConversation,
+        messages: updatedMessages,
+        updatedAt: getCurrentISODate(),
+      };
+      setConversations((prev) =>
+        prev.map((c) => (c.id === currentConversation.id ? updatedConv : c)),
+      );
+    } else {
+      // Create new conversation
+      const title = text.length > 32 ? `${text.slice(0, 32)}...` : text;
+      const newConv: NovaConversation = {
+        id: createUniqueId('nova'),
+        title,
+        messages: [userMsg, novaMsg],
+        createdAt: getCurrentISODate(),
+        updatedAt: getCurrentISODate(),
+      };
+      setConversations((prev) => [newConv, ...prev]);
+      setActiveId(newConv.id);
+    }
+
+    setInputMessage('');
   };
 
   return (
@@ -38,185 +174,200 @@ function Nova() {
         <div className="nova-shell">
 
           {/* HEADER */}
-
           <header className="nova-header">
-            <button
-              type="button"
-              className="nova-back"
-              aria-label="Go back"
-              onClick={() => navigate('/app/teen')}
-            >
-              ←
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <button
+                type="button"
+                className="nova-back"
+                aria-label="Go back"
+                onClick={() => navigate('/app/teen')}
+              >
+                ←
+              </button>
 
-            <div className="nova-brand">
-              <span className="nova-symbol">✦</span>
-
-              <div>
-                <span className="teen-label">
-                  TWO-WAY
-                </span>
-
-                <h1>Nova</h1>
+              <div className="nova-brand">
+                <div>
+                  <span className="teen-label">TWO-WAY</span>
+                  <h1>Nova</h1>
+                </div>
               </div>
             </div>
 
-            <span className="nova-status">
-              HERE WITH YOU
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {/* Mobile history toggle */}
+              <button
+                type="button"
+                className="nova-history-mobile-toggle"
+                onClick={() => setMobileHistoryOpen(!mobileHistoryOpen)}
+                aria-label="Toggle conversation history"
+              >
+                ☰ History ({conversations.length})
+              </button>
+
+              <button
+                type="button"
+                className="nova-new-chat-button"
+                onClick={handleStartNewConversation}
+                title="Start a new conversation"
+              >
+                + New
+              </button>
+
+              <span className="nova-status">
+                HERE WITH YOU
+              </span>
+            </div>
           </header>
 
-          {/* INTRO */}
+          {/* MAIN 2-COLUMN LAYOUT: HISTORY SIDEBAR + CHAT */}
+          <div className="nova-workspace">
 
-          <section className="nova-intro">
-            <span className="teen-eyebrow">
-              AI SUPPORT / PRIVATE
-            </span>
+            {/* CONVERSATION HISTORY SIDEBAR */}
+            <aside
+              className={`nova-sidebar ${
+                mobileHistoryOpen ? 'is-mobile-open' : ''
+              }`}
+            >
+              <div className="nova-sidebar-header">
+                <div>
+                  <span className="nova-sidebar-label">CONVERSATIONS</span>
+                  <strong style={{ display: 'block', fontSize: '0.88rem' }}>
+                    Your History
+                  </strong>
+                </div>
 
-            <h2>
-              You don't have to
-              <br />
-              <strong>figure it out alone.</strong>
-            </h2>
+                <button
+                  type="button"
+                  className="nova-sidebar-new"
+                  onClick={handleStartNewConversation}
+                >
+                  + New
+                </button>
+              </div>
 
-            <p>
-              Talk through what's on your mind.
-              Find the words.
-              Untangle the complicated stuff.
-            </p>
-          </section>
+              <div className="nova-history-list">
+                {conversations.length === 0 ? (
+                  <div className="nova-history-empty">
+                    <p>No previous conversations yet.</p>
+                    <small>Chats you have with Nova will be saved here.</small>
+                  </div>
+                ) : (
+                  conversations.map((conv) => {
+                    const isActive = conv.id === activeId;
+                    return (
+                      <button
+                        key={conv.id}
+                        type="button"
+                        className={`nova-history-item ${
+                          isActive ? 'is-active' : ''
+                        }`}
+                        onClick={() => handleSelectConversation(conv.id)}
+                      >
+                        <span className="nova-history-title">
+                          {conv.title}
+                        </span>
+                        <span className="nova-history-meta">
+                          {conv.messages.length} messages
+                        </span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </aside>
 
-          {/* QUICK START */}
+            {/* CONVERSATION AREA */}
+            <main className="nova-main-chat">
 
-          {messages.length === 0 && (
-            <section className="nova-prompts">
-
-              <button
-                type="button"
-                onClick={() =>
-                  setMessage(
-                    "I don't know how to explain what I'm feeling."
-                  )
-                }
-              >
-                <span>01</span>
-                <strong>
-                  I don't know how to explain what I'm feeling.
-                </strong>
-                <span>↗</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setMessage(
-                    "I need help having a difficult conversation."
-                  )
-                }
-              >
-                <span>02</span>
-                <strong>
-                  I need help having a difficult conversation.
-                </strong>
-                <span>↗</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setMessage(
-                    "Something happened and I need to talk about it."
-                  )
-                }
-              >
-                <span>03</span>
-                <strong>
-                  Something happened and I need to talk about it.
-                </strong>
-                <span>↗</span>
-              </button>
-
-            </section>
-          )}
-
-          {/* CHAT */}
-
-          <section className="nova-chat">
-
-            {messages.map((item, index) => (
-              <div
-                key={`${item.role}-${index}`}
-                className={`nova-message ${
-                  item.role === 'user'
-                    ? 'nova-message-user'
-                    : 'nova-message-nova'
-                }`}
-              >
-                <span className="teen-label">
-                  {item.role === 'user'
-                    ? 'YOU'
-                    : 'NOVA'}
+              {/* INTRO */}
+              <section className="nova-intro">
+                <span className="teen-eyebrow">
+                  AI SUPPORT / PRIVATE
                 </span>
 
-                <p>{item.text}</p>
-              </div>
-            ))}
+                <h2>
+                  You don't have to
+                  <br />
+                  <strong>figure it out alone.</strong>
+                </h2>
 
-          </section>
+                <p>
+                  Talk through what's on your mind. Find the words. Untangle the complicated stuff.
+                </p>
+              </section>
 
-          {/* INPUT */}
+              {/* CHAT MESSAGES */}
+              <section className="nova-chat">
+                {messages.length === 0 ? (
+                  <div className="nova-empty-chat-notice">
+                    <p>
+                      Start typing below to talk with Nova. Your conversation is completely private.
+                    </p>
+                  </div>
+                ) : (
+                  messages.map((item) => (
+                    <div
+                      key={item.id}
+                      className={`nova-message ${
+                        item.role === 'user'
+                          ? 'nova-message-user'
+                          : 'nova-message-nova'
+                      }`}
+                    >
+                      <span className="teen-label">
+                        {item.role === 'user' ? 'YOU' : 'NOVA'}
+                      </span>
+                      <p>{item.text}</p>
+                    </div>
+                  ))
+                )}
+              </section>
 
-          <section className="nova-input-section">
+              {/* COMPOSER */}
+              <section className="nova-input-section">
+                <textarea
+                  value={inputMessage}
+                  onChange={(event) => setInputMessage(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.shiftKey) {
+                      event.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                  placeholder="What's on your mind? Talk it through with Nova..."
+                  rows={4}
+                />
 
-            <textarea
-              value={message}
-              onChange={(event) =>
-                setMessage(event.target.value)
-              }
-              onKeyDown={(event) => {
-                if (
-                  event.key === 'Enter' &&
-                  !event.shiftKey
-                ) {
-                  event.preventDefault();
-                  sendMessage();
-                }
-              }}
-              placeholder="What's on your mind?"
-              rows={4}
-            />
+                <div className="nova-input-footer">
+                  <span>Press Enter to send</span>
 
-            <div className="nova-input-footer">
-              <span>
-                Press Enter to send
-              </span>
+                  <button
+                    type="button"
+                    onClick={handleSendMessage}
+                    disabled={!inputMessage.trim()}
+                  >
+                    Send
+                  </button>
+                </div>
+              </section>
 
-              <button
-                type="button"
-                onClick={sendMessage}
-                disabled={!message.trim()}
-              >
-                Send →
-              </button>
-            </div>
+              {/* FOOTER */}
+              <footer className="nova-footer">
+                <p>
+                  Nova is here to help you think things through. You stay in control of what you share.
+                </p>
 
-          </section>
+                <button
+                  type="button"
+                  onClick={() => navigate('/app/teen')}
+                >
+                  Exit Nova
+                </button>
+              </footer>
 
-          {/* FOOTER */}
+            </main>
 
-          <footer className="nova-footer">
-            <p>
-              Nova is here to help you think things through.
-              You stay in control of what you share.
-            </p>
-
-            <button
-              type="button"
-              onClick={() => navigate('/app/teen')}
-            >
-              Exit Nova
-            </button>
-          </footer>
+          </div>
 
         </div>
       </div>

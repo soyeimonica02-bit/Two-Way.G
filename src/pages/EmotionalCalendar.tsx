@@ -1,23 +1,18 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-
-type Mood =
-  | 'good'
-  | 'okay'
-  | 'low'
-  | 'frustrated'
-  | 'anxious';
+import {
+  formatDateKey,
+  formatRecordedTime,
+  formatUpdatedTime,
+} from '../utils/moodStorage';
+import type { MoodKey } from '../utils/moodStorage';
+import { useMood } from '../context/useMood';
 
 interface MoodOption {
-  key: Mood;
+  key: MoodKey;
   emoji: string;
   label: string;
-}
-
-interface MoodEntry {
-  mood: Mood;
-  note: string;
 }
 
 const moods: MoodOption[] = [
@@ -48,7 +43,7 @@ const moods: MoodOption[] = [
   },
 ];
 
-const motivation: Record<Mood, string> = {
+const motivation: Record<MoodKey, string> = {
   good:
     'Hold onto whatever is making today feel lighter. You do not have to wait for a difficult day to appreciate a good one.',
 
@@ -67,77 +62,52 @@ const motivation: Record<Mood, string> = {
 
 function EmotionalCalendar() {
   const navigate = useNavigate();
+  const { entries, todayKey, saveEntry } = useMood();
 
   const today = new Date();
-  const year = today.getFullYear();
-  const month = today.getMonth();
+  const [viewYear, setViewYear] = useState(() => today.getFullYear());
+  const [viewMonth, setViewMonth] = useState(() => today.getMonth());
 
-  const monthName = today.toLocaleDateString('en-US', {
+  const viewDateObj = new Date(viewYear, viewMonth, 1);
+  const monthName = viewDateObj.toLocaleDateString('en-US', {
     month: 'long',
   });
 
   const daysInMonth = new Date(
-    year,
-    month + 1,
+    viewYear,
+    viewMonth + 1,
     0,
   ).getDate();
 
   const firstDay = new Date(
-    year,
-    month,
+    viewYear,
+    viewMonth,
     1,
   ).getDay();
 
-  const [selectedDay, setSelectedDay] =
-    useState<number | null>(null);
-
-  const [selectedMood, setSelectedMood] =
-    useState<Mood | null>(null);
-
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [selectedMood, setSelectedMood] = useState<MoodKey | null>(null);
   const [note, setNote] = useState('');
 
-  /*
-   * This state forces the calendar to immediately
-   * update after an entry is saved.
-   */
-  const [entries, setEntries] =
-    useState<Record<number, MoodEntry>>(() => {
-      const savedEntries: Record<number, MoodEntry> = {};
+  const handlePrevMonth = () => {
+    setSelectedDay(null);
+    if (viewMonth === 0) {
+      setViewYear((y) => y - 1);
+      setViewMonth(11);
+    } else {
+      setViewMonth((m) => m - 1);
+    }
+  };
 
-      for (let day = 1; day <= daysInMonth; day += 1) {
-        const savedMood = localStorage.getItem(
-          `twoway_mood_${year}_${month}_${day}`,
-        ) as Mood | null;
-
-        const savedNote =
-          localStorage.getItem(
-            `twoway_note_${year}_${month}_${day}`,
-          ) || '';
-
-        if (savedMood) {
-          savedEntries[day] = {
-            mood: savedMood,
-            note: savedNote,
-          };
-        }
-      }
-
-      const todayDate = today.getDate();
-      if (!savedEntries[todayDate]) {
-        const todayMood = localStorage.getItem('twoway_today_mood') as Mood | null;
-        if (todayMood) {
-          savedEntries[todayDate] = {
-            mood: todayMood,
-            note:
-              localStorage.getItem(
-                `twoway_note_${year}_${month}_${todayDate}`,
-              ) || '',
-          };
-        }
-      }
-
-      return savedEntries;
-    });
+  const handleNextMonth = () => {
+    setSelectedDay(null);
+    if (viewMonth === 11) {
+      setViewYear((y) => y + 1);
+      setViewMonth(0);
+    } else {
+      setViewMonth((m) => m + 1);
+    }
+  };
 
   /*
    * Open a calendar day.
@@ -145,11 +115,12 @@ function EmotionalCalendar() {
   const handleDaySelect = (day: number) => {
     setSelectedDay(day);
 
-    const existingEntry = entries[day];
+    const dateKey = formatDateKey(viewYear, viewMonth, day);
+    const existingEntry = entries[dateKey];
 
     if (existingEntry) {
       setSelectedMood(existingEntry.mood);
-      setNote(existingEntry.note);
+      setNote(existingEntry.note || '');
     } else {
       setSelectedMood(null);
       setNote('');
@@ -164,29 +135,12 @@ function EmotionalCalendar() {
       return;
     }
 
-    const entry: MoodEntry = {
+    const dateKey = formatDateKey(viewYear, viewMonth, selectedDay);
+    saveEntry({
+      date: dateKey,
       mood: selectedMood,
-      note: note.trim(),
-    };
-
-    localStorage.setItem(
-      `twoway_mood_${year}_${month}_${selectedDay}`,
-      selectedMood,
-    );
-
-    localStorage.setItem(
-      `twoway_note_${year}_${month}_${selectedDay}`,
-      note.trim(),
-    );
-
-    if (selectedDay === today.getDate()) {
-      localStorage.setItem('twoway_today_mood', selectedMood);
-    }
-
-    setEntries((previous) => ({
-      ...previous,
-      [selectedDay]: entry,
-    }));
+      note: note,
+    });
   };
 
   /*
@@ -199,7 +153,7 @@ function EmotionalCalendar() {
   };
 
   /*
-   * Build calendar.
+   * Build calendar days.
    */
   const emptyDays = Array.from({ length: firstDay }, (_, i) => (
     <div
@@ -210,7 +164,9 @@ function EmotionalCalendar() {
 
   const monthDays = Array.from({ length: daysInMonth }, (_, index) => {
     const day = index + 1;
-    const savedEntry = entries[day];
+    const dateKey = formatDateKey(viewYear, viewMonth, day);
+    const savedEntry = entries[dateKey];
+    const isTodayTile = dateKey === todayKey;
 
     const mood = savedEntry
       ? moods.find(
@@ -230,6 +186,10 @@ function EmotionalCalendar() {
         } ${
           savedEntry
             ? 'has-entry'
+            : ''
+        } ${
+          isTodayTile
+            ? 'is-today'
             : ''
         }`}
         onClick={() =>
@@ -254,6 +214,21 @@ function EmotionalCalendar() {
   });
 
   const calendarDays = [...emptyDays, ...monthDays];
+  const selectedDateKey = selectedDay ? formatDateKey(viewYear, viewMonth, selectedDay) : null;
+  const currentSavedEntry = selectedDateKey ? entries[selectedDateKey] : null;
+  const selectedDateObj = selectedDay ? new Date(viewYear, viewMonth, selectedDay) : null;
+  const dayName = selectedDateObj
+    ? selectedDateObj.toLocaleDateString('en-US', { weekday: 'long' })
+    : '';
+  const fullDateFormatted = selectedDateObj
+    ? selectedDateObj.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    : '';
+  const isToday = selectedDateKey === todayKey;
 
   return (
     <main className="emotional-calendar-page">
@@ -280,11 +255,13 @@ function EmotionalCalendar() {
             EMOTIONAL CALENDAR
           </span>
 
+          <div style={{ width: '44px' }} />
+
         </header>
 
 
         {/* =========================================
-            INTRO
+            INTRO & MONTH SWITCHER
         ========================================= */}
 
         <motion.section
@@ -305,11 +282,68 @@ function EmotionalCalendar() {
             YOUR FEELINGS, OVER TIME
           </p>
 
-          <h1>
-            {monthName}
-            <br />
-            <strong>{year}</strong>
-          </h1>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '16px',
+            }}
+          >
+            <h1>
+              {monthName}
+              <br />
+              <strong>{viewYear}</strong>
+            </h1>
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={handlePrevMonth}
+                aria-label="Previous month"
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  display: 'grid',
+                  placeItems: 'center',
+                  background: 'var(--tw-surface)',
+                  border: '2.5px solid var(--tw-border)',
+                  borderRadius: '12px',
+                  boxShadow: '2.5px 2.5px 0px var(--tw-border)',
+                  color: 'var(--tw-text)',
+                  fontSize: '1.2rem',
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  transition: 'transform 120ms ease, box-shadow 120ms ease',
+                }}
+              >
+                ←
+              </button>
+              <button
+                type="button"
+                onClick={handleNextMonth}
+                aria-label="Next month"
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  display: 'grid',
+                  placeItems: 'center',
+                  background: 'var(--tw-surface)',
+                  border: '2.5px solid var(--tw-border)',
+                  borderRadius: '12px',
+                  boxShadow: '2.5px 2.5px 0px var(--tw-border)',
+                  color: 'var(--tw-text)',
+                  fontSize: '1.2rem',
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  transition: 'transform 120ms ease, box-shadow 120ms ease',
+                }}
+              >
+                →
+              </button>
+            </div>
+          </div>
 
           <p>
             Check in with yourself,
@@ -381,11 +415,11 @@ function EmotionalCalendar() {
 
               <div>
                 <span>
-                  DAY {selectedDay}
+                  DAY {selectedDay} · {fullDateFormatted.toUpperCase()}
                 </span>
 
                 <h2>
-                  How did today feel?
+                  {isToday ? 'How did today feel?' : `How did ${dayName} feel?`}
                 </h2>
               </div>
 
@@ -400,7 +434,125 @@ function EmotionalCalendar() {
             </div>
 
 
-            {/* MOODS */}
+            {/* SAVED ENTRY DISPLAY (Display recorded times in user's local timezone) */}
+            {currentSavedEntry && (
+              <div
+                className="emotional-calendar-saved-card"
+                style={{
+                  marginBottom: '24px',
+                  padding: '16px 20px',
+                  background: 'var(--tw-surface)',
+                  border: '2.5px solid var(--tw-border)',
+                  borderRadius: '16px',
+                  boxShadow: '3.5px 3.5px 0px var(--tw-border)',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '12px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <span style={{ fontSize: '2rem', lineHeight: 1 }}>
+                      {currentSavedEntry.emoji}
+                    </span>
+                    <div>
+                      <span
+                        style={{
+                          display: 'block',
+                          fontSize: '0.68rem',
+                          fontWeight: 900,
+                          color: 'var(--tw-primary)',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.08em',
+                        }}
+                      >
+                        RECORDED MOOD
+                      </span>
+                      <strong
+                        style={{
+                          fontSize: '1.15rem',
+                          fontWeight: 900,
+                          color: 'var(--tw-text)',
+                        }}
+                      >
+                        {moods.find((m) => m.key === currentSavedEntry.mood)?.label || currentSavedEntry.mood}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {/* Timestamps in user's local timezone */}
+                  <div style={{ textAlign: 'right' }}>
+                    {currentSavedEntry.recordedAt && (
+                      <span
+                        style={{
+                          display: 'block',
+                          fontSize: '0.8rem',
+                          fontWeight: 900,
+                          color: 'var(--tw-primary)',
+                        }}
+                      >
+                        {formatRecordedTime(currentSavedEntry.recordedAt)}
+                      </span>
+                    )}
+                    {currentSavedEntry.updatedAt && currentSavedEntry.updatedAt !== currentSavedEntry.recordedAt && (
+                      <span
+                        style={{
+                          display: 'block',
+                          fontSize: '0.74rem',
+                          fontWeight: 800,
+                          color: 'var(--tw-text-muted)',
+                          marginTop: '2px',
+                        }}
+                      >
+                        {formatUpdatedTime(currentSavedEntry.updatedAt)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {currentSavedEntry.note && (
+                  <div
+                    style={{
+                      marginTop: '12px',
+                      paddingTop: '10px',
+                      borderTop: '1.5px dashed var(--tw-border)',
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: 'block',
+                        fontSize: '0.68rem',
+                        fontWeight: 900,
+                        color: 'var(--tw-text-muted)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.08em',
+                        marginBottom: '4px',
+                      }}
+                    >
+                      SAVED NOTE
+                    </span>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: '0.94rem',
+                        color: 'var(--tw-text)',
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      "{currentSavedEntry.note}"
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+
+            {/* MOODS SELECTOR / EDITOR */}
 
             <div className="emotional-calendar-moods">
 
@@ -432,7 +584,7 @@ function EmotionalCalendar() {
             </div>
 
 
-            {/* NOTE */}
+            {/* NOTE - reveals immediately when mood is selected */}
 
             {selectedMood && (
               <div className="emotional-calendar-note">
@@ -505,14 +657,14 @@ function EmotionalCalendar() {
               disabled={!selectedMood}
               onClick={handleSave}
             >
-              {entries[selectedDay]
+              {currentSavedEntry
                 ? 'Update entry'
-                : "Save today's entry"}
+                : 'Save entry'}
             </button>
 
-            {entries[selectedDay] && (
+            {currentSavedEntry && (
               <p className="emotional-calendar-saved">
-                ✓ This day has been saved.
+                ✓ Saved to Emotional Calendar
               </p>
             )}
 

@@ -54,7 +54,6 @@ function MyHaven() {
         {/* PRIVACY NOTICE */}
 
         <section className="haven-privacy">
-
           <span>🔒</span>
 
           <div>
@@ -68,22 +67,19 @@ function MyHaven() {
               and your Circle.
             </p>
           </div>
-
         </section>
 
 
-        {/* HAVEN OPTIONS */}
+        {/* HAVEN OPTIONS - ONLY PRIVATE JOURNAL & PRIVATE THOUGHTS */}
 
         <section className="haven-section">
-
           <div className="haven-section-label">
             YOUR HAVEN
           </div>
 
           <div className="haven-options">
 
-            {/* JOURNAL */}
-
+            {/* PRIVATE JOURNAL */}
             <button
               type="button"
               onClick={() =>
@@ -92,10 +88,6 @@ function MyHaven() {
                 )
               }
             >
-              <div className="haven-option-number">
-                01
-              </div>
-
               <div className="haven-option-content">
                 <span>PRIVATE JOURNAL</span>
 
@@ -108,25 +100,18 @@ function MyHaven() {
                   they can simply exist.
                 </p>
               </div>
-
-              <strong>→</strong>
             </button>
 
 
             {/* PRIVATE THOUGHTS */}
-
             <button
               type="button"
               onClick={() =>
                 navigate(
-                  '/app/teen/haven/journal',
+                  '/app/teen/haven/thoughts',
                 )
               }
             >
-              <div className="haven-option-number">
-                02
-              </div>
-
               <div className="haven-option-content">
                 <span>PRIVATE THOUGHTS</span>
 
@@ -139,43 +124,9 @@ function MyHaven() {
                   without sending it anywhere.
                 </p>
               </div>
-
-              <strong>→</strong>
-            </button>
-
-
-            {/* REFLECTION */}
-
-            <button
-              type="button"
-              onClick={() =>
-                navigate(
-                  '/app/teen/mood-reflection',
-                )
-              }
-            >
-              <div className="haven-option-number">
-                03
-              </div>
-
-              <div className="haven-option-content">
-                <span>REFLECTION</span>
-
-                <h2>
-                  Look back.
-                </h2>
-
-                <p>
-                  Reflect on what you've been
-                  feeling lately.
-                </p>
-              </div>
-
-              <strong>→</strong>
             </button>
 
           </div>
-
         </section>
 
 

@@ -1,5 +1,10 @@
-import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import PaletteSelector from '../components/PaletteSelector';
+import {
+  getSelectedPaletteId,
+  setSelectedPalette,
+} from '../utils/themePalettes';
 
 type Role =
   | 'teen'
@@ -7,7 +12,7 @@ type Role =
   | 'partner'
   | 'spouse'
   | 'sibling'
-  | 'counselor'
+  | 'counselor';
 
 const roleNames: Record<Role, string> = {
   teen: 'Teen',
@@ -16,68 +21,80 @@ const roleNames: Record<Role, string> = {
   spouse: 'Spouse',
   sibling: 'Sibling',
   counselor: 'Counselor',
-}
+};
 
 export default function Onboarding() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
-  const registeredRole =
-    localStorage.getItem('twoway_registered_role') as Role | null
+  const registeredRole = localStorage.getItem(
+    'twoway_registered_role',
+  ) as Role | null;
 
-  const selectedRole =
-    localStorage.getItem('twoway_selected_role') as Role | null
+  const selectedRole = localStorage.getItem(
+    'twoway_selected_role',
+  ) as Role | null;
 
-  const role = registeredRole || selectedRole
+  const role = registeredRole || selectedRole;
+
+  const [step, setStep] = useState<'details' | 'appearance'>('details');
 
   const [name, setName] = useState(
-    localStorage.getItem('twoway_profile_name') || ''
-  )
+    localStorage.getItem('twoway_profile_name') || '',
+  );
 
-  const [goal, setGoal] = useState('')
+  const [goal, setGoal] = useState(
+    localStorage.getItem('twoway_profile_goal') || '',
+  );
+
+  const [selectedPaletteId, setPaletteId] = useState<string | null>(
+    () => getSelectedPaletteId(),
+  );
 
   const roleName = useMemo(() => {
     if (!role || !roleNames[role]) {
-      return 'Two-Way'
+      return 'Two-Way';
     }
 
-    return roleNames[role]
-  }, [role])
+    return roleNames[role];
+  }, [role]);
 
-  const handleSubmit = (
-    event: React.FormEvent<HTMLFormElement>
+  const handleDetailsSubmit = (
+    event: React.FormEvent<HTMLFormElement>,
   ) => {
-    event.preventDefault()
+    event.preventDefault();
 
     if (!role) {
-      navigate('/roles')
-      return
+      navigate('/roles');
+      return;
     }
 
-    if (!name.trim()) {
-      return
+    if (!name.trim() || !goal) {
+      return;
     }
 
-    if (!goal) {
-      return
+    localStorage.setItem('twoway_profile_name', name.trim());
+    localStorage.setItem('twoway_profile_goal', goal);
+
+    // Proceed to appearance step
+    setStep('appearance');
+  };
+
+  const handleFinishOnboarding = () => {
+    if (!role) {
+      navigate('/roles');
+      return;
     }
 
-    localStorage.setItem(
-      'twoway_profile_name',
-      name.trim()
-    )
+    if (!selectedPaletteId) {
+      return;
+    }
 
-    localStorage.setItem(
-      'twoway_profile_goal',
-      goal
-    )
+    localStorage.setItem('twoway_selected_palette', selectedPaletteId);
+    setSelectedPalette(selectedPaletteId);
+    localStorage.setItem('twoway_onboarding_complete', 'true');
 
-    localStorage.setItem(
-      'twoway_onboarding_complete',
-      'true'
-    )
-
-    navigate(`/app/${role}`)
-  }
+    navigate(`/app/${role}`);
+  };
 
   if (!role) {
     return (
@@ -114,9 +131,131 @@ export default function Onboarding() {
           </section>
         </div>
       </main>
-    )
+    );
   }
 
+  // STEP 2: APPEARANCE SELECTION
+  if (step === 'appearance') {
+    return (
+      <main
+        className="tw-page"
+        style={{
+          background: 'var(--tw-background, #f8f8f5)',
+          minHeight: '100vh',
+          paddingBottom: '80px',
+        }}
+      >
+        <div
+          className="tw-container"
+          style={{ maxWidth: '960px', margin: '0 auto', padding: '0 24px' }}
+        >
+          {/* TOP BAR WITH ARROW-ONLY BACK BUTTON */}
+          <header
+            style={{
+              minHeight: '70px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderBottom: '2.5px solid var(--tw-border)',
+              marginBottom: '36px',
+            }}
+          >
+            <button
+              type="button"
+              aria-label="Go back"
+              onClick={() => setStep('details')}
+              style={{
+                width: '44px',
+                height: '44px',
+                display: 'grid',
+                placeItems: 'center',
+                background: 'var(--tw-surface)',
+                border: '2.5px solid var(--tw-border)',
+                borderRadius: '12px',
+                color: 'var(--tw-text)',
+                fontSize: '1.25rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                boxShadow: '2.5px 2.5px 0px var(--tw-border)',
+                transition: 'transform 120ms ease, box-shadow 120ms ease',
+              }}
+            >
+              ←
+            </button>
+
+            <span
+              style={{
+                fontSize: '0.68rem',
+                fontWeight: 850,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                color: 'var(--tw-primary)',
+              }}
+            >
+              STEP 2 OF 2 · APPEARANCE
+            </span>
+
+            <div style={{ width: '44px' }} />
+          </header>
+
+          <PaletteSelector
+            initialSelectedId={selectedPaletteId}
+            onPaletteSelect={(id) => setPaletteId(id)}
+          />
+
+          <div
+            style={{
+              marginTop: '36px',
+              paddingTop: '24px',
+              borderTop: '2.5px solid var(--tw-border)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '12px',
+            }}
+          >
+            <button
+              type="button"
+              className="tw-button tw-button-primary"
+              disabled={!selectedPaletteId}
+              onClick={handleFinishOnboarding}
+              style={{
+                width: '100%',
+                maxWidth: '420px',
+                minHeight: '52px',
+                background: selectedPaletteId ? 'var(--tw-primary)' : 'var(--tw-surface-soft)',
+                color: selectedPaletteId ? 'var(--tw-primary-text, #ffffff)' : 'var(--tw-text-muted)',
+                border: '2.5px solid var(--tw-border)',
+                borderRadius: '14px',
+                fontWeight: 900,
+                fontSize: '0.88rem',
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                boxShadow: selectedPaletteId ? '4px 4px 0px var(--tw-border)' : 'none',
+                cursor: selectedPaletteId ? 'pointer' : 'not-allowed',
+              }}
+            >
+              {selectedPaletteId
+                ? 'Enter Two-Way'
+                : 'Choose a palette to continue'}
+            </button>
+
+            <p
+              style={{
+                margin: 0,
+                fontSize: '0.75rem',
+                color: 'var(--tw-text-secondary)',
+              }}
+            >
+              You can change your palette at any time in Settings → Appearance.
+            </p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // STEP 1: BASIC ONBOARDING DETAILS
   return (
     <main className="tw-page">
       <div className="tw-container">
@@ -206,7 +345,7 @@ export default function Onboarding() {
             </div>
 
             <form
-              onSubmit={handleSubmit}
+              onSubmit={handleDetailsSubmit}
               style={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -312,7 +451,7 @@ export default function Onboarding() {
                   marginTop: '4px',
                 }}
               >
-                Enter Two-Way
+                Continue
               </button>
             </form>
 
@@ -333,5 +472,5 @@ export default function Onboarding() {
         </section>
       </div>
     </main>
-  )
+  );
 }

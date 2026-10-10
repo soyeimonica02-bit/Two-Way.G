@@ -9,7 +9,14 @@ function TeenLayout({ children }: TeenLayoutProps) {
   const location = useLocation();
 
   const isChatsActive =
-    location.pathname.startsWith('/app/teen/conversations');
+    location.pathname.startsWith('/app/teen/conversations') ||
+    location.pathname.startsWith('/app/teen/clarity');
+
+  const isNovaActive =
+    location.pathname.startsWith('/app/teen/nova');
+
+  const isCircleActive =
+    location.pathname.startsWith('/app/teen/circle');
 
   const isYouActive =
     location.pathname.startsWith('/app/teen/profile');
@@ -43,9 +50,22 @@ function TeenLayout({ children }: TeenLayoutProps) {
           aria-label="Profile"
           title="Profile"
         >
-          <span className="teen-profile-avatar" aria-hidden="true">
-            ◯
-          </span>
+          {localStorage.getItem('twoway_profile_avatar') ? (
+            <img
+              src={localStorage.getItem('twoway_profile_avatar') || ''}
+              alt="Profile"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                borderRadius: '50%',
+              }}
+            />
+          ) : (
+            <span className="teen-profile-avatar" aria-hidden="true">
+              👤
+            </span>
+          )}
         </NavLink>
       </header>
 
@@ -60,7 +80,7 @@ function TeenLayout({ children }: TeenLayoutProps) {
 
 
       {/* =========================================
-          MOBILE NAVIGATION
+          BOTTOM NAVIGATION
       ========================================= */}
 
       <nav
@@ -76,9 +96,10 @@ function TeenLayout({ children }: TeenLayoutProps) {
               isActive ? 'is-active' : ''
             }`
           }
+          aria-label="Home"
         >
           <span className="teen-layout-nav-icon teen-mobile-nav-icon">
-            ⌂
+            🏠
           </span>
 
           <span>
@@ -92,31 +113,48 @@ function TeenLayout({ children }: TeenLayoutProps) {
           className={`teen-mobile-nav-item ${
             isChatsActive ? 'is-active' : ''
           }`}
+          aria-label="Clarity"
         >
           <span className="teen-layout-nav-icon teen-mobile-nav-icon">
-            ○
+            💬
           </span>
 
           <span>
-            Chats
+            Clarity
           </span>
         </NavLink>
 
 
         <NavLink
           to="/app/teen/nova"
-          className={({ isActive }) =>
-            `teen-mobile-nav-item ${
-              isActive ? 'is-active' : ''
-            }`
-          }
+          className={`teen-mobile-nav-item ${
+            isNovaActive ? 'is-active' : ''
+          }`}
+          aria-label="Nova"
         >
           <span className="teen-layout-nav-icon teen-mobile-nav-icon">
-            ✦
+            ✨
           </span>
 
           <span>
             Nova
+          </span>
+        </NavLink>
+
+
+        <NavLink
+          to="/app/teen/circle"
+          className={`teen-mobile-nav-item ${
+            isCircleActive ? 'is-active' : ''
+          }`}
+          aria-label="My Circle"
+        >
+          <span className="teen-layout-nav-icon teen-mobile-nav-icon">
+            👥
+          </span>
+
+          <span>
+            My Circle
           </span>
         </NavLink>
 
@@ -129,7 +167,11 @@ function TeenLayout({ children }: TeenLayoutProps) {
           }`}
         >
           <span className="teen-layout-nav-icon teen-mobile-nav-icon">
-            ◯
+            👤
+          </span>
+
+          <span>
+            Profile
           </span>
         </NavLink>
 
