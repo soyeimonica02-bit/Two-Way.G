@@ -1,11 +1,20 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import PaletteSelector from '../components/PaletteSelector';
 
 function SettingsAppearance() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as { from?: string } | null)?.from;
   const [feedback, setFeedback] = useState(false);
+
+  const isParent = location.pathname.startsWith('/app/parent');
+  const baseSettingsRoute = isParent ? '/app/parent/settings' : '/app/teen/settings';
+
+  const handleBack = () => {
+    navigate(baseSettingsRoute, { state: { from } });
+  };
 
   const handlePaletteSelect = () => {
     setFeedback(true);
@@ -21,7 +30,7 @@ function SettingsAppearance() {
           <button
             type="button"
             aria-label="Go back"
-            onClick={() => navigate('/app/teen/settings')}
+            onClick={handleBack}
           >
             ←
           </button>

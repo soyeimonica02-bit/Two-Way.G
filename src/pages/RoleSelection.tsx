@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 
@@ -50,6 +51,12 @@ const roles = [
 
 export default function RoleSelection() {
   const navigate = useNavigate()
+
+  useEffect(() => {
+    // When visiting role selection to create an account, clear transient signup state
+    localStorage.removeItem('twoway_selected_role')
+    localStorage.removeItem('twoway_signup_dob')
+  }, [])
 
   const handleRoleSelect = (role: Role) => {
     localStorage.setItem('twoway_selected_role', role)

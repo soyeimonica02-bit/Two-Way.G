@@ -89,15 +89,14 @@ function MyHaven() {
               }
             >
               <div className="haven-option-content">
-                <span>PRIVATE JOURNAL</span>
+                <span>LONG-FORM REFLECTION</span>
 
                 <h2>
-                  Write it out.
+                  Private Journal.
                 </h2>
 
                 <p>
-                  Put your thoughts somewhere
-                  they can simply exist.
+                  Long-form entries and personal reflections over time. Write about your day, emotions, and growth in a chronological diary.
                 </p>
               </div>
             </button>
@@ -113,15 +112,14 @@ function MyHaven() {
               }
             >
               <div className="haven-option-content">
-                <span>PRIVATE THOUGHTS</span>
+                <span>QUICK NOTES & UNSENT WORDS</span>
 
                 <h2>
-                  Keep it here.
+                  Private Thoughts.
                 </h2>
 
                 <p>
-                  Save something for yourself
-                  without sending it anywhere.
+                  A lightweight, fast space to capture immediate thoughts, feelings, and unsent words without needing a full journal entry.
                 </p>
               </div>
             </button>

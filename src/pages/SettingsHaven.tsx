@@ -1,9 +1,24 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 function SettingsHaven() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as { from?: string } | null)?.from;
+
+  const isParent = location.pathname.startsWith('/app/parent');
+  const baseSettingsRoute = isParent ? '/app/parent/settings' : '/app/teen/settings';
+
+  const handleBack = () => {
+    navigate(baseSettingsRoute, { state: { from } });
+  };
+
+  useEffect(() => {
+    if (isParent) {
+      navigate('/app/parent/settings', { replace: true });
+    }
+  }, [isParent, navigate]);
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -22,7 +37,7 @@ function SettingsHaven() {
     if (existingPasscode && currentPassword !== existingPasscode) {
       setStatusMessage({
         type: 'error',
-        text: 'Current passcode does not match.',
+        text: 'Current password does not match.',
       });
       return;
     }
@@ -30,7 +45,7 @@ function SettingsHaven() {
     if (!newPassword.trim()) {
       setStatusMessage({
         type: 'error',
-        text: 'Please enter a new passcode or password.',
+        text: 'Please enter a new password.',
       });
       return;
     }
@@ -38,7 +53,7 @@ function SettingsHaven() {
     if (newPassword !== confirmPassword) {
       setStatusMessage({
         type: 'error',
-        text: 'New passcodes do not match.',
+        text: 'New passwords do not match.',
       });
       return;
     }
@@ -63,7 +78,7 @@ function SettingsHaven() {
           <button
             type="button"
             aria-label="Go back"
-            onClick={() => navigate('/app/teen/settings')}
+            onClick={handleBack}
           >
             ←
           </button>
@@ -80,31 +95,15 @@ function SettingsHaven() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <h1>My Haven.</h1>
+          <h1>Change Password.</h1>
 
-          <p>Manage the passcode that protects your private space.</p>
+          <p>Update the password that protects your private Haven.</p>
         </motion.section>
 
         {/* CHANGE PASSWORD */}
         <section className="settings-section">
           <div className="settings-section-label">
-            CHANGE PASSCODE
-          </div>
-
-          <div
-            style={{
-              padding: '18px 20px',
-              background: 'var(--tw-surface-soft)',
-              border: '2.5px solid var(--tw-border)',
-              borderRadius: '14px',
-              boxShadow: '3px 3px 0px var(--tw-border)',
-              marginBottom: '24px',
-              fontSize: '0.88rem',
-              color: 'var(--tw-text)',
-              lineHeight: 1.6,
-            }}
-          >
-            My Haven (your Private Journal and Private Thoughts) is accessed directly from your Teen Dashboard. Here in Settings, you can protect your Haven with a personal lock passcode.
+            CHANGE PASSWORD
           </div>
 
           {statusMessage && (
@@ -155,7 +154,7 @@ function SettingsHaven() {
                     marginBottom: '8px',
                   }}
                 >
-                  Current Passcode
+                    Current Password
                 </label>
                 <input
                   id="current-pw"
@@ -173,7 +172,7 @@ function SettingsHaven() {
                     fontFamily: 'inherit',
                     outline: 'none',
                   }}
-                  placeholder="Enter current passcode"
+                  placeholder="Enter current password"
                   required
                 />
               </div>
@@ -192,7 +191,7 @@ function SettingsHaven() {
                   marginBottom: '8px',
                 }}
               >
-                {existingPasscode ? 'New Passcode' : 'Create Haven Passcode'}
+                {existingPasscode ? 'New Password' : 'Create Haven Password'}
               </label>
               <input
                 id="new-pw"
@@ -210,7 +209,7 @@ function SettingsHaven() {
                   fontFamily: 'inherit',
                   outline: 'none',
                 }}
-                placeholder="Enter passcode or password"
+                placeholder="Enter new password"
                 required
               />
             </div>
@@ -228,7 +227,7 @@ function SettingsHaven() {
                   marginBottom: '8px',
                 }}
               >
-                Confirm Passcode
+                Confirm Password
               </label>
               <input
                 id="confirm-pw"
@@ -246,7 +245,7 @@ function SettingsHaven() {
                   fontFamily: 'inherit',
                   outline: 'none',
                 }}
-                placeholder="Confirm passcode or password"
+                placeholder="Confirm new password"
                 required
               />
             </div>
@@ -270,7 +269,7 @@ function SettingsHaven() {
                 marginTop: '8px',
               }}
             >
-              Update Passcode
+              Update Password
             </button>
           </form>
         </section>

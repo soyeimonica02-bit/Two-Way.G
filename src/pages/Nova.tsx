@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import TeenLayout from '../layouts/TeenLayout';
+import ParentLayout from '../layouts/ParentLayout';
 
 interface NovaMessage {
   id: string;
@@ -17,11 +18,38 @@ interface NovaConversation {
   updatedAt: string;
 }
 
-const STORAGE_KEY = 'twoway_nova_conversations';
-const ACTIVE_ID_KEY = 'twoway_nova_active_id';
-
-function generateNovaReply(userText: string): string {
+function generateNovaReply(userText: string, isParent: boolean): string {
   const lower = userText.toLowerCase();
+
+  if (isParent) {
+    if (
+      lower.includes('teen') ||
+      lower.includes('child') ||
+      lower.includes('son') ||
+      lower.includes('daughter') ||
+      lower.includes('kid')
+    ) {
+      return "Communicating with your teenager can feel challenging, especially when emotions flare. What do you most want them to feel from you right now—safety, being heard, or a calm boundary?";
+    }
+    if (
+      lower.includes('anxious') ||
+      lower.includes('scared') ||
+      lower.includes('worry') ||
+      lower.includes('nervous')
+    ) {
+      return "It is completely natural as a parent to feel anxious when communication breaks down. Take a slow breath—what is the one core message of care you want your teen to know?";
+    }
+    if (
+      lower.includes('mad') ||
+      lower.includes('angry') ||
+      lower.includes('frustrated') ||
+      lower.includes('disrespect')
+    ) {
+      return "Frustration usually peaks when we feel unappreciated or unheard. Before responding, let's step back: what boundary or need is most important for you to hold calmly?";
+    }
+    return "I'm here to support you as a parent. What feels like the hardest part of communicating with your teen right now?";
+  }
+
   if (
     lower.includes('anxious') ||
     lower.includes('scared') ||
@@ -70,11 +98,23 @@ function getCurrentISODate(): string {
 
 function Nova() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const isParent = location.pathname.startsWith('/app/parent');
+  const baseRoute = isParent ? '/app/parent' : '/app/teen';
+  const Layout = isParent ? ParentLayout : TeenLayout;
+
+  const storageKey = isParent
+    ? 'twoway_nova_conversations_parent'
+    : 'twoway_nova_conversations';
+  const activeIdKey = isParent
+    ? 'twoway_nova_active_id_parent'
+    : 'twoway_nova_active_id';
 
   // Load conversations from localStorage (only user-created ones)
   const [conversations, setConversations] = useState<NovaConversation[]>(() => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = localStorage.getItem(storageKey);
       if (raw) {
         return JSON.parse(raw);
       }
@@ -85,7 +125,7 @@ function Nova() {
   });
 
   const [activeId, setActiveId] = useState<string | null>(() => {
-    return localStorage.getItem(ACTIVE_ID_KEY) || null;
+    return localStorage.getItem(activeIdKey) || null;
   });
 
   const [inputMessage, setInputMessage] = useState('');
@@ -93,16 +133,16 @@ function Nova() {
 
   // Sync to localStorage
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
-  }, [conversations]);
+    localStorage.setItem(storageKey, JSON.stringify(conversations));
+  }, [conversations, storageKey]);
 
   useEffect(() => {
     if (activeId) {
-      localStorage.setItem(ACTIVE_ID_KEY, activeId);
+      localStorage.setItem(activeIdKey, activeId);
     } else {
-      localStorage.removeItem(ACTIVE_ID_KEY);
+      localStorage.removeItem(activeIdKey);
     }
-  }, [activeId]);
+  }, [activeId, activeIdKey]);
 
   // Current active conversation
   const currentConversation = conversations.find((c) => c.id === activeId) || null;
@@ -132,7 +172,7 @@ function Nova() {
       timestamp: now,
     };
 
-    const novaReplyText = generateNovaReply(text);
+    const novaReplyText = generateNovaReply(text, isParent);
     const novaMsg: NovaMessage = {
       id: createUniqueId('msg_n'),
       role: 'nova',
@@ -169,7 +209,7 @@ function Nova() {
   };
 
   return (
-    <TeenLayout>
+    <Layout>
       <div className="nova-page">
         <div className="nova-shell">
 
@@ -180,7 +220,7 @@ function Nova() {
                 type="button"
                 className="nova-back"
                 aria-label="Go back"
-                onClick={() => navigate('/app/teen')}
+                onClick={() => navigate(baseRoute)}
               >
                 ←
               </button>
@@ -359,7 +399,7 @@ function Nova() {
 
                 <button
                   type="button"
-                  onClick={() => navigate('/app/teen')}
+                  onClick={() => navigate(baseRoute)}
                 >
                   Exit Nova
                 </button>
@@ -371,7 +411,7 @@ function Nova() {
 
         </div>
       </div>
-    </TeenLayout>
+    </Layout>
   );
 }
 

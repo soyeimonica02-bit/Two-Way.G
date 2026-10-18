@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 export default function Auth() {
@@ -17,6 +17,27 @@ export default function Auth() {
 
   const selectedRole = localStorage.getItem('twoway_selected_role')
   const selectedDob = localStorage.getItem('twoway_signup_dob')
+
+  // When creating a new account, ensure role selection (and birthday if teen) was completed
+  useEffect(() => {
+    if (!isLogin) {
+      if (!selectedRole) {
+        navigate('/roles', { replace: true })
+      } else if (selectedRole === 'teen' && !selectedDob) {
+        navigate('/auth/birthday', { replace: true })
+      }
+    }
+  }, [isLogin, selectedRole, selectedDob, navigate])
+
+  const handleAuthBack = () => {
+    if (isLogin) {
+      navigate('/')
+    } else if (selectedRole === 'teen') {
+      navigate('/auth/birthday')
+    } else {
+      navigate('/roles')
+    }
+  }
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -59,7 +80,15 @@ export default function Auth() {
       }
 
       localStorage.setItem('twoway_logged_in', 'true')
-      navigate('/onboarding')
+      const regRole = localStorage.getItem('twoway_registered_role')
+      const isOnboarded = localStorage.getItem('twoway_onboarding_complete') === 'true'
+      if (regRole && isOnboarded) {
+        navigate(`/app/${regRole}`)
+      } else if (regRole) {
+        navigate('/onboarding')
+      } else {
+        navigate('/roles')
+      }
       return
     }
 
@@ -79,6 +108,14 @@ export default function Auth() {
       setError('Your passwords do not match.')
       return
     }
+
+    // Reset previous account's onboarding and profile state for the fresh account
+    localStorage.removeItem('twoway_onboarding_complete')
+    localStorage.removeItem('twoway_profile_name')
+    localStorage.removeItem('twoway_profile_goal')
+    localStorage.removeItem('twoway_profile_avatar')
+    localStorage.removeItem('twoway_user_id')
+    localStorage.removeItem('twoway_selected_palette')
 
     localStorage.setItem(
       'twoway_registered_email',
@@ -147,7 +184,7 @@ export default function Auth() {
             <button
               type="button"
               aria-label="Go back"
-              onClick={() => navigate('/roles')}
+              onClick={handleAuthBack}
               style={{
                 border: 'none',
                 background: 'transparent',
@@ -203,6 +240,46 @@ export default function Auth() {
                   : 'A few details and you’ll be ready to get started.'}
               </p>
             </div>
+
+            {!isLogin && selectedRole && (
+              <div
+                style={{
+                  marginBottom: '16px',
+                  padding: '10px 14px',
+                  borderRadius: '12px',
+                  border: '1.5px solid var(--tw-primary)',
+                  background: 'var(--tw-primary-soft)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--tw-primary)' }}>
+                    ROLE:
+                  </span>
+                  <strong style={{ fontSize: '0.92rem', color: 'var(--tw-text)' }}>
+                    {selectedRole === 'teen' ? 'Teenager' : selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)}
+                  </strong>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => navigate('/roles')}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--tw-primary)',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                  }}
+                >
+                  Change
+                </button>
+              </div>
+            )}
 
             <form
               onSubmit={handleSubmit}

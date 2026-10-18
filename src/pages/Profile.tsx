@@ -1,16 +1,28 @@
 import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 function Profile() {
   const navigate = useNavigate();
+  const location = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const isParent = location.pathname.startsWith('/app/parent');
+  const baseRoute = isParent ? '/app/parent' : '/app/teen';
+
+  const registeredRole = localStorage.getItem('twoway_registered_role');
+  const userRoleDisplay =
+    registeredRole === 'parent' || isParent
+      ? 'Parent'
+      : registeredRole === 'teen'
+        ? 'Teenager'
+        : 'Teenager';
 
   const [name, setName] = useState(
     () =>
       localStorage.getItem('twoway_profile_name') ||
       localStorage.getItem('twoway_demo_name') ||
-      'Alex',
+      (isParent ? 'Parent' : 'Alex'),
   );
 
   const [pronouns, setPronouns] = useState(
@@ -122,7 +134,7 @@ function Profile() {
           <button
             type="button"
             aria-label="Go back"
-            onClick={() => navigate('/app/teen')}
+            onClick={() => navigate(baseRoute)}
           >
             ←
           </button>
@@ -453,7 +465,7 @@ function Profile() {
             <div className="profile-row">
               <div>
                 <span>Account Role</span>
-                <strong>Teenager</strong>
+                <strong>{userRoleDisplay}</strong>
               </div>
               <span
                 style={{
@@ -506,55 +518,25 @@ function Profile() {
             <button
               type="button"
               className="profile-settings-link"
-              onClick={() => navigate('/app/teen/settings')}
+              onClick={() => navigate(`${baseRoute}/settings`, { state: { from: `${baseRoute}/profile` } })}
               aria-label="Settings"
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div>
+                <strong style={{ display: 'block', fontSize: '1rem', fontWeight: 900 }}>
+                  Settings
+                </strong>
                 <span
                   style={{
-                    fontSize: '1.35rem',
-                    display: 'grid',
-                    placeItems: 'center',
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '12px',
-                    background: 'var(--tw-surface-raised)',
-                    border: '2px solid var(--tw-border)',
-                    boxShadow: '2px 2px 0px var(--tw-border)',
-                    flexShrink: 0,
+                    display: 'block',
+                    fontSize: '0.8rem',
+                    color: 'var(--tw-text-muted)',
+                    fontWeight: 600,
+                    marginTop: '2px',
                   }}
-                  aria-hidden="true"
                 >
-                  ⚙
+                  Privacy, notifications, appearance, help &amp; account
                 </span>
-                <div>
-                  <strong style={{ display: 'block', fontSize: '1rem', fontWeight: 900 }}>
-                    Settings
-                  </strong>
-                  <span
-                    style={{
-                      display: 'block',
-                      fontSize: '0.8rem',
-                      color: 'var(--tw-text-muted)',
-                      fontWeight: 600,
-                      marginTop: '2px',
-                    }}
-                  >
-                    Privacy, notifications, appearance, help &amp; account
-                  </span>
-                </div>
               </div>
-
-              <span
-                style={{
-                  fontSize: '1.25rem',
-                  fontWeight: 900,
-                  color: 'var(--tw-text-muted)',
-                  marginLeft: '12px',
-                }}
-              >
-                →
-              </span>
             </button>
           </div>
         </section>

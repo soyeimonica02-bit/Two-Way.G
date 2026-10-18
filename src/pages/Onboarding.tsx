@@ -1,10 +1,15 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PaletteSelector from '../components/PaletteSelector';
 import {
   getSelectedPaletteId,
   setSelectedPalette,
 } from '../utils/themePalettes';
+import {
+  normalizeTwoWayId,
+  isValidTwoWayIdFormat,
+  registerAccountInDirectory,
+} from '../utils/circleStorage';
 
 type Role =
   | 'teen'
@@ -25,6 +30,7 @@ const roleNames: Record<Role, string> = {
 
 export default function Onboarding() {
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const registeredRole = localStorage.getItem(
     'twoway_registered_role',
@@ -46,6 +52,13 @@ export default function Onboarding() {
     localStorage.getItem('twoway_profile_goal') || '',
   );
 
+  // Profile picture: load from existing user profile storage if already selected, optional
+  const [avatarImage, setAvatarImage] = useState<string | null>(
+    () => localStorage.getItem('twoway_profile_avatar') || null,
+  );
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
+
   const [selectedPaletteId, setPaletteId] = useState<string | null>(
     () => getSelectedPaletteId(),
   );
@@ -57,6 +70,55 @@ export default function Onboarding() {
 
     return roleNames[role];
   }, [role]);
+
+  const handlePhotoClick = () => {
+    setAvatarError(null);
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+
+    if (!file) return;
+
+    setAvatarError(null);
+
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
+    if (!validTypes.includes(file.type)) {
+      setAvatarError('Please select a valid image file (JPG, PNG, WebP, or GIF).');
+      return;
+    }
+
+    const maxSizeBytes = 4 * 1024 * 1024;
+    if (file.size > maxSizeBytes) {
+      setAvatarError('The selected image is larger than 4MB. Please choose a smaller photo.');
+      return;
+    }
+
+    setIsProcessingImage(true);
+
+    const reader = new FileReader();
+    reader.onerror = () => {
+      setIsProcessingImage(false);
+      setAvatarError('Failed to read the image file. Please try again.');
+    };
+
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      try {
+        localStorage.setItem('twoway_profile_avatar', dataUrl);
+        setAvatarImage(dataUrl);
+        setIsProcessingImage(false);
+      } catch (storageErr) {
+        setIsProcessingImage(false);
+        console.error('Failed to store profile photo in localStorage:', storageErr);
+        setAvatarError('Could not save photo to local device storage (quota exceeded).');
+      }
+    };
+
+    reader.readAsDataURL(file);
+  };
 
   const handleDetailsSubmit = (
     event: React.FormEvent<HTMLFormElement>,
@@ -74,6 +136,9 @@ export default function Onboarding() {
 
     localStorage.setItem('twoway_profile_name', name.trim());
     localStorage.setItem('twoway_profile_goal', goal);
+    if (avatarImage) {
+      localStorage.setItem('twoway_profile_avatar', avatarImage);
+    }
 
     // Proceed to appearance step
     setStep('appearance');
@@ -89,6 +154,26 @@ export default function Onboarding() {
       return;
     }
 
+    // Ensure user has a canonical Two-Way ID
+    let userId = localStorage.getItem('twoway_user_id');
+    if (!userId || !isValidTwoWayIdFormat(normalizeTwoWayId(userId))) {
+      const randomDigits = Math.floor(1000 + Math.random() * 9000).toString();
+      userId = `TW-${randomDigits}`;
+      localStorage.setItem('twoway_user_id', userId);
+    } else {
+      userId = normalizeTwoWayId(userId);
+      localStorage.setItem('twoway_user_id', userId);
+    }
+
+    // Register account in accounts directory so peers can look it up in My Circle
+    const displayRole = role === 'teen' ? 'Teenager' : (roleNames[role] || 'Member');
+    registerAccountInDirectory({
+      twoWayId: userId,
+      displayName: name.trim() || displayRole,
+      role: displayRole,
+    });
+
+    localStorage.setItem('twoway_registered_role', role);
     localStorage.setItem('twoway_selected_palette', selectedPaletteId);
     setSelectedPalette(selectedPaletteId);
     localStorage.setItem('twoway_onboarding_complete', 'true');
@@ -275,6 +360,26 @@ export default function Onboarding() {
               maxWidth: '520px',
             }}
           >
+            <button
+              type="button"
+              aria-label="Go back"
+              onClick={() => navigate('/roles')}
+              style={{
+                border: 'none',
+                background: 'transparent',
+                padding: 0,
+                marginBottom: '20px',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                fontWeight: 700,
+                color: 'var(--tw-text-secondary)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              ← Back
+            </button>
             <div
               style={{
                 display: 'flex',
@@ -352,6 +457,89 @@ export default function Onboarding() {
                 gap: '20px',
               }}
             >
+              {/* Real hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
+                aria-label="Upload profile picture"
+              />
+
+              {/* Circular profile-picture area with plus (+) button */}
+              <div className="onboarding-avatar-wrapper">
+                <div
+                  className="onboarding-avatar"
+                  onClick={handlePhotoClick}
+                  title={avatarImage ? 'Click to replace photo' : 'Upload profile picture (optional)'}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handlePhotoClick();
+                    }
+                  }}
+                  aria-label={avatarImage ? 'Change profile picture' : 'Upload profile picture (optional)'}
+                >
+                  {avatarImage ? (
+                    <img
+                      src={avatarImage}
+                      alt="Profile preview"
+                      className="onboarding-avatar-img"
+                    />
+                  ) : (
+                    <span>
+                      {(name.trim().charAt(0) || '👤').toUpperCase()}
+                    </span>
+                  )}
+
+                  <button
+                    type="button"
+                    className="onboarding-avatar-plus"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePhotoClick();
+                    }}
+                    aria-label={avatarImage ? 'Change picture' : 'Add profile picture'}
+                    title={avatarImage ? 'Change picture' : 'Add profile picture'}
+                    disabled={isProcessingImage}
+                  >
+                    {isProcessingImage ? '…' : '+'}
+                  </button>
+                </div>
+
+                <span
+                  style={{
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    color: 'var(--tw-text-muted)',
+                    marginTop: '8px',
+                    letterSpacing: '0.04em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {avatarImage ? 'Photo selected · Tap + to change' : 'Profile photo (optional)'}
+                </span>
+
+                {avatarError && (
+                  <p
+                    role="alert"
+                    style={{
+                      margin: '6px 0 0',
+                      fontSize: '0.74rem',
+                      fontWeight: 700,
+                      color: 'var(--tw-accent-red, #dc2626)',
+                      textAlign: 'center',
+                      lineHeight: 1.35,
+                    }}
+                  >
+                    {avatarError}
+                  </p>
+                )}
+              </div>
+
               <label
                 style={{
                   display: 'flex',

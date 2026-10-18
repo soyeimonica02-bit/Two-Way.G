@@ -8,6 +8,11 @@ import VerifyEmail from '../pages/VerifyEmail';
 import Onboarding from '../pages/Onboarding';
 
 import TeenDashboard from '../pages/TeenDashboard';
+import ParentDashboard from '../pages/ParentDashboard';
+import SiblingDashboard from '../pages/SiblingDashboard';
+import PartnerDashboard from '../pages/PartnerDashboard';
+import SpouseDashboard from '../pages/SpouseDashboard';
+import CounselorDashboard from '../pages/CounselorDashboard';
 import Nova from '../pages/Nova';
 import EmotionalCalendar from '../pages/EmotionalCalendar';
 import MoodReflection from '../pages/MoodReflection';
@@ -16,6 +21,7 @@ import MyHaven from '../pages/MyHaven';
 import HavenJournal from '../pages/HavenJournal';
 import HavenThoughts from '../pages/HavenThoughts';
 import MyCircle from '../pages/MyCircle';
+import AddConnectionId from '../pages/AddConnectionId';
 
 import Conversations from '../pages/Conversations';
 import ConversationView from '../pages/ConversationView';
@@ -29,6 +35,22 @@ import SettingsNotifications from '../pages/SettingsNotifications';
 import SettingsAppearance from '../pages/SettingsAppearance';
 import SettingsHelp from '../pages/SettingsHelp';
 import SettingsAbout from '../pages/SettingsAbout';
+
+function RoleGuard({
+  requiredRole,
+  children,
+}: {
+  requiredRole: string;
+  children: React.ReactElement;
+}) {
+  const registeredRole =
+    localStorage.getItem('twoway_registered_role') ||
+    localStorage.getItem('twoway_selected_role');
+  if (registeredRole && registeredRole !== requiredRole) {
+    return <Navigate to={`/app/${registeredRole}`} replace />;
+  }
+  return children;
+}
 
 export default function AppRoutes() {
   return (
@@ -157,19 +179,31 @@ export default function AppRoutes() {
 
       <Route
         path="/app/teen/haven"
-        element={<MyHaven />}
+        element={
+          <RoleGuard requiredRole="teen">
+            <MyHaven />
+          </RoleGuard>
+        }
       />
 
       {/* My Haven Journal */}
       <Route
         path="/app/teen/haven/journal"
-        element={<HavenJournal />}
+        element={
+          <RoleGuard requiredRole="teen">
+            <HavenJournal />
+          </RoleGuard>
+        }
       />
 
       {/* Haven thoughts route */}
       <Route
         path="/app/teen/haven/thoughts"
-        element={<HavenThoughts />}
+        element={
+          <RoleGuard requiredRole="teen">
+            <HavenThoughts />
+          </RoleGuard>
+        }
       />
 
 
@@ -180,6 +214,16 @@ export default function AppRoutes() {
       <Route
         path="/app/teen/circle"
         element={<MyCircle />}
+      />
+
+      <Route
+        path="/app/teen/circle/add"
+        element={<AddConnectionId />}
+      />
+
+      <Route
+        path="/app/teen/circle/add-id"
+        element={<AddConnectionId />}
       />
 
 
@@ -266,6 +310,148 @@ export default function AppRoutes() {
       <Route
         path="/app/teen/settings/about"
         element={<SettingsAbout />}
+      />
+
+
+      {/* =========================================
+          PARENT HOME
+      ========================================= */}
+
+      <Route
+        path="/app/parent"
+        element={
+          <RoleGuard requiredRole="parent">
+            <ParentDashboard />
+          </RoleGuard>
+        }
+      />
+
+      {/* Parents do not have Clarity - redirect to Parent Dashboard */}
+      <Route
+        path="/app/parent/conversations"
+        element={<Navigate to="/app/parent" replace />}
+      />
+
+      <Route
+        path="/app/parent/clarity"
+        element={<Navigate to="/app/parent" replace />}
+      />
+
+      <Route
+        path="/app/parent/conversations/:conversationId"
+        element={
+          <RoleGuard requiredRole="parent">
+            <ConversationView />
+          </RoleGuard>
+        }
+      />
+
+      <Route
+        path="/app/parent/clarity/:conversationId"
+        element={
+          <RoleGuard requiredRole="parent">
+            <ConversationView />
+          </RoleGuard>
+        }
+      />
+
+      {/* Parent My Circle */}
+      <Route
+        path="/app/parent/circle"
+        element={<MyCircle />}
+      />
+
+      <Route
+        path="/app/parent/circle/add"
+        element={<AddConnectionId />}
+      />
+
+      <Route
+        path="/app/parent/circle/add-id"
+        element={<AddConnectionId />}
+      />
+
+      {/* Parent Nova */}
+      <Route
+        path="/app/parent/nova"
+        element={<Nova />}
+      />
+
+      {/* Parent Profile */}
+      <Route
+        path="/app/parent/profile"
+        element={<Profile />}
+      />
+
+      {/* Parent Settings & Subpages */}
+      <Route
+        path="/app/parent/settings"
+        element={<Settings />}
+      />
+
+      <Route
+        path="/app/parent/settings/profile"
+        element={<Navigate to="/app/parent/profile" replace />}
+      />
+
+      <Route
+        path="/app/parent/settings/email"
+        element={<SettingsEmail />}
+      />
+
+      <Route
+        path="/app/parent/settings/privacy"
+        element={<SettingsPrivacy />}
+      />
+
+      <Route
+        path="/app/parent/settings/haven"
+        element={<Navigate to="/app/parent/settings" replace />}
+      />
+
+      <Route
+        path="/app/parent/settings/notifications"
+        element={<SettingsNotifications />}
+      />
+
+      <Route
+        path="/app/parent/settings/appearance"
+        element={<SettingsAppearance />}
+      />
+
+      <Route
+        path="/app/parent/settings/help"
+        element={<SettingsHelp />}
+      />
+
+      <Route
+        path="/app/parent/settings/about"
+        element={<SettingsAbout />}
+      />
+
+
+      {/* =========================================
+          OTHER SUPPORTED ROLES
+      ========================================= */}
+
+      <Route
+        path="/app/sibling"
+        element={<SiblingDashboard />}
+      />
+
+      <Route
+        path="/app/partner"
+        element={<PartnerDashboard />}
+      />
+
+      <Route
+        path="/app/spouse"
+        element={<SpouseDashboard />}
+      />
+
+      <Route
+        path="/app/counselor"
+        element={<CounselorDashboard />}
       />
 
 

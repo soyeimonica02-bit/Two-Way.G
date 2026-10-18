@@ -280,15 +280,6 @@ function MoodReflection() {
               <button
                 type="button"
                 onClick={() =>
-                  navigate('/app/teen/nova')
-                }
-              >
-                Talk to Nova →
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
                   navigate('/app/teen/haven')
                 }
               >

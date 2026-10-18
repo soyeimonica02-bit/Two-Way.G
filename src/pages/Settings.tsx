@@ -1,12 +1,29 @@
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 function Settings() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as { from?: string } | null)?.from;
+
+  const isParent = location.pathname.startsWith('/app/parent');
+  const baseProfileRoute = isParent ? '/app/parent/profile' : '/app/teen/profile';
+  const baseSettingsRoute = isParent ? '/app/parent/settings' : '/app/teen/settings';
+
+  const handleBack = () => {
+    if (from) {
+      navigate(from);
+    } else {
+      navigate(baseProfileRoute);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('twoway_auth_token');
     localStorage.removeItem('twoway_user_session');
+    localStorage.removeItem('twoway_logged_in');
+    localStorage.removeItem('twoway_selected_role');
+    localStorage.removeItem('twoway_signup_dob');
     navigate('/');
   };
 
@@ -19,13 +36,7 @@ function Settings() {
           <button
             type="button"
             aria-label="Go back"
-            onClick={() => {
-              if (window.history.length > 1) {
-                navigate(-1);
-              } else {
-                navigate('/app/teen/profile');
-              }
-            }}
+            onClick={handleBack}
           >
             ←
           </button>
@@ -56,7 +67,17 @@ function Settings() {
           <div className="settings-list">
             <button
               type="button"
-              onClick={() => navigate('/app/teen/settings/email')}
+              onClick={() => navigate(baseProfileRoute, { state: { from: location.pathname } })}
+            >
+              <div>
+                <span>Profile</span>
+                <small>Manage your personal details</small>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate(`${baseSettingsRoute}/email`, { state: { from: from || baseProfileRoute } })}
             >
               <div>
                 <span>Email</span>
@@ -75,7 +96,7 @@ function Settings() {
           <div className="settings-list">
             <button
               type="button"
-              onClick={() => navigate('/app/teen/settings/privacy')}
+              onClick={() => navigate(`${baseSettingsRoute}/privacy`, { state: { from: from || baseProfileRoute } })}
             >
               <div>
                 <span>Privacy</span>
@@ -83,15 +104,17 @@ function Settings() {
               </div>
             </button>
 
-            <button
-              type="button"
-              onClick={() => navigate('/app/teen/settings/haven')}
-            >
-              <div>
-                <span>My Haven</span>
-                <small>Manage your private space</small>
-              </div>
-            </button>
+            {!isParent && (
+              <button
+                type="button"
+                onClick={() => navigate(`${baseSettingsRoute}/haven`, { state: { from: from || baseProfileRoute } })}
+              >
+                <div>
+                  <span>My Haven</span>
+                  <small>Manage your private space</small>
+                </div>
+              </button>
+            )}
           </div>
         </section>
 
@@ -104,7 +127,7 @@ function Settings() {
           <div className="settings-list">
             <button
               type="button"
-              onClick={() => navigate('/app/teen/settings/notifications')}
+              onClick={() => navigate(`${baseSettingsRoute}/notifications`, { state: { from: from || baseProfileRoute } })}
             >
               <div>
                 <span>Notifications</span>
@@ -114,7 +137,7 @@ function Settings() {
 
             <button
               type="button"
-              onClick={() => navigate('/app/teen/settings/appearance')}
+              onClick={() => navigate(`${baseSettingsRoute}/appearance`, { state: { from: from || baseProfileRoute } })}
             >
               <div>
                 <span>Appearance</span>
@@ -133,7 +156,7 @@ function Settings() {
           <div className="settings-list">
             <button
               type="button"
-              onClick={() => navigate('/app/teen/settings/help')}
+              onClick={() => navigate(`${baseSettingsRoute}/help`, { state: { from: from || baseProfileRoute } })}
             >
               <div>
                 <span>Help & Support</span>
@@ -143,7 +166,7 @@ function Settings() {
 
             <button
               type="button"
-              onClick={() => navigate('/app/teen/settings/about')}
+              onClick={() => navigate(`${baseSettingsRoute}/about`, { state: { from: from || baseProfileRoute } })}
             >
               <div>
                 <span>About Two-Way</span>
@@ -161,10 +184,6 @@ function Settings() {
           >
             Log out
           </button>
-
-          <p>
-            Logging out is only simulated during the prototype stage.
-          </p>
         </section>
 
         {/* FOOTER */}

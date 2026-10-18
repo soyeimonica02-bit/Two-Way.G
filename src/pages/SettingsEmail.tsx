@@ -1,21 +1,31 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 function SettingsEmail() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as { from?: string } | null)?.from;
+
+  const isParent = location.pathname.startsWith('/app/parent');
+  const baseSettingsRoute = isParent ? '/app/parent/settings' : '/app/teen/settings';
 
   const [email, setEmail] = useState(
     () =>
+      localStorage.getItem('twoway_registered_email') ||
       localStorage.getItem('twoway_account_email') ||
       localStorage.getItem('twoway_auth_email') ||
-      'teen@two-way.app',
+      (isParent ? 'parent@two-way.app' : 'teen@two-way.app'),
   );
 
   const [isEditing, setIsEditing] = useState(false);
   const [newEmail, setNewEmail] = useState(email);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [error, setError] = useState('');
+
+  const handleBack = () => {
+    navigate(baseSettingsRoute, { state: { from } });
+  };
 
   const handleSave = () => {
     if (!newEmail.includes('@') || !newEmail.includes('.')) {
@@ -24,6 +34,7 @@ function SettingsEmail() {
     }
     setError('');
     setEmail(newEmail);
+    localStorage.setItem('twoway_registered_email', newEmail);
     localStorage.setItem('twoway_account_email', newEmail);
     localStorage.setItem('twoway_auth_email', newEmail);
     setIsEditing(false);
@@ -40,7 +51,7 @@ function SettingsEmail() {
           <button
             type="button"
             aria-label="Go back"
-            onClick={() => navigate('/app/teen/settings')}
+            onClick={handleBack}
           >
             ←
           </button>

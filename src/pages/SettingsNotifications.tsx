@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 interface NotificationSettings {
   masterEnabled: boolean;
@@ -18,6 +18,15 @@ const DEFAULT_SETTINGS: NotificationSettings = {
 
 function SettingsNotifications() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as { from?: string } | null)?.from;
+
+  const isParent = location.pathname.startsWith('/app/parent');
+  const baseSettingsRoute = isParent ? '/app/parent/settings' : '/app/teen/settings';
+
+  const handleBack = () => {
+    navigate(baseSettingsRoute, { state: { from } });
+  };
 
   const [settings, setSettings] = useState<NotificationSettings>(() => {
     try {
@@ -58,7 +67,7 @@ function SettingsNotifications() {
           <button
             type="button"
             aria-label="Go back"
-            onClick={() => navigate('/app/teen/settings')}
+            onClick={handleBack}
           >
             ←
           </button>

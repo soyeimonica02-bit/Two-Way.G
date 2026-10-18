@@ -126,23 +126,6 @@ function TeenLayout({ children }: TeenLayoutProps) {
 
 
         <NavLink
-          to="/app/teen/nova"
-          className={`teen-mobile-nav-item ${
-            isNovaActive ? 'is-active' : ''
-          }`}
-          aria-label="Nova"
-        >
-          <span className="teen-layout-nav-icon teen-mobile-nav-icon">
-            ✨
-          </span>
-
-          <span>
-            Nova
-          </span>
-        </NavLink>
-
-
-        <NavLink
           to="/app/teen/circle"
           className={`teen-mobile-nav-item ${
             isCircleActive ? 'is-active' : ''
@@ -155,6 +138,22 @@ function TeenLayout({ children }: TeenLayoutProps) {
 
           <span>
             My Circle
+          </span>
+        </NavLink>
+
+        <NavLink
+          to="/app/teen/nova"
+          className={`teen-mobile-nav-item ${
+            isNovaActive ? 'is-active' : ''
+          }`}
+          aria-label="Nova"
+        >
+          <span className="teen-layout-nav-icon teen-mobile-nav-icon">
+            ✨
+          </span>
+
+          <span>
+            Nova
           </span>
         </NavLink>
 

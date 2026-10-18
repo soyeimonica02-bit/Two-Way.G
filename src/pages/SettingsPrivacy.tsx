@@ -1,11 +1,21 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 function SettingsPrivacy() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as { from?: string } | null)?.from;
+
   const [clearedFeedback, setClearedFeedback] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  const isParent = location.pathname.startsWith('/app/parent');
+  const baseSettingsRoute = isParent ? '/app/parent/settings' : '/app/teen/settings';
+
+  const handleBack = () => {
+    navigate(baseSettingsRoute, { state: { from } });
+  };
 
   const handleClearData = () => {
     // Retain essentials but clear user drafts & local mood data
@@ -17,6 +27,7 @@ function SettingsPrivacy() {
       'twoway_haven_journal_entry',
       'twoway_haven_thoughts',
       'twoway_haven_thoughts_entry',
+      'twoway_haven_thoughts_notes',
       'twoway_nova_conversations',
       'twoway_nova_active_id',
     ];
@@ -38,7 +49,7 @@ function SettingsPrivacy() {
           <button
             type="button"
             aria-label="Go back"
-            onClick={() => navigate('/app/teen/settings')}
+            onClick={handleBack}
           >
             ←
           </button>
@@ -63,7 +74,7 @@ function SettingsPrivacy() {
         {/* PRIVACY BOUNDARIES */}
         <section className="settings-section">
           <div className="settings-section-label">
-            HOW TWO-WAY PROTECTS YOUR SPACE
+            PRIVACY BOUNDARIES
           </div>
 
           <div
@@ -87,11 +98,29 @@ function SettingsPrivacy() {
                 What information Two-Way stores
               </h2>
               <p style={{ fontSize: '0.92rem', color: 'var(--tw-text-muted)', lineHeight: 1.6, margin: 0 }}>
-                Two-Way stores your display name, role, account email, daily mood check-ins, personal notes, private haven journals, and the conversations you draft.
+                Two-Way stores your display name, selected role, account email, daily mood check-ins, personal notes, private haven entries, and the conversations you write.
               </p>
             </div>
 
-            {/* 2. My Haven */}
+            {/* 2. What Information is Private */}
+            <div
+              style={{
+                background: 'var(--tw-surface)',
+                border: '2.5px solid var(--tw-border)',
+                borderRadius: '18px',
+                boxShadow: '4px 4px 0px var(--tw-border)',
+                padding: '24px',
+              }}
+            >
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 900, margin: '0 0 8px', color: 'var(--tw-text)' }}>
+                What information is private
+              </h2>
+              <p style={{ fontSize: '0.92rem', color: 'var(--tw-text-muted)', lineHeight: 1.6, margin: 0 }}>
+                Your private spaces are yours alone. Your personal entries, journal thoughts, mood history, and unsent drafts are completely private and are never visible to parents, peers, or counselors.
+              </p>
+            </div>
+
+            {/* 3. My Haven */}
             <div
               style={{
                 background: 'var(--tw-surface)',
@@ -109,24 +138,6 @@ function SettingsPrivacy() {
               </p>
             </div>
 
-            {/* 3. Emotional Calendar */}
-            <div
-              style={{
-                background: 'var(--tw-surface)',
-                border: '2.5px solid var(--tw-border)',
-                borderRadius: '18px',
-                boxShadow: '4px 4px 0px var(--tw-border)',
-                padding: '24px',
-              }}
-            >
-              <h2 style={{ fontSize: '1.15rem', fontWeight: 900, margin: '0 0 8px', color: 'var(--tw-text)' }}>
-                How Emotional Calendar data works
-              </h2>
-              <p style={{ fontSize: '0.92rem', color: 'var(--tw-text-muted)', lineHeight: 1.6, margin: 0 }}>
-                Your daily feelings, emoji selections, and personal day notes belong solely to your personal calendar. They are not visible to your Circle contacts or anyone else.
-              </p>
-            </div>
-
             {/* 4. Conversations */}
             <div
               style={{
@@ -141,11 +152,11 @@ function SettingsPrivacy() {
                 How conversations work
               </h2>
               <p style={{ fontSize: '0.92rem', color: 'var(--tw-text-muted)', lineHeight: 1.6, margin: 0 }}>
-                When drafting what you want to say in Clarity, your words remain completely private to you. They are only seen by another person when you deliberately choose to communicate them.
+                When writing what you want to say, your words remain completely private to you while drafting. Messages are only seen by a connection when you deliberately choose to send them.
               </p>
             </div>
 
-            {/* 5. Nova AI Support */}
+            {/* 5. Emotional Calendar */}
             <div
               style={{
                 background: 'var(--tw-surface)',
@@ -156,19 +167,37 @@ function SettingsPrivacy() {
               }}
             >
               <h2 style={{ fontSize: '1.15rem', fontWeight: 900, margin: '0 0 8px', color: 'var(--tw-text)' }}>
-                Nova is AI support — not a person
+                How Emotional Calendar data works
+              </h2>
+              <p style={{ fontSize: '0.92rem', color: 'var(--tw-text-muted)', lineHeight: 1.6, margin: 0 }}>
+                Your daily feeling check-ins and personal notes stay solely in your personal calendar. They are not visible to your Circle connections or anyone else.
+              </p>
+            </div>
+
+            {/* 6. Nova Conversations & Boundaries */}
+            <div
+              style={{
+                background: 'var(--tw-surface)',
+                border: '2.5px solid var(--tw-border)',
+                borderRadius: '18px',
+                boxShadow: '4px 4px 0px var(--tw-border)',
+                padding: '24px',
+              }}
+            >
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 900, margin: '0 0 8px', color: 'var(--tw-text)' }}>
+                How Nova conversations work
               </h2>
               <p style={{ fontSize: '0.92rem', color: 'var(--tw-text-muted)', lineHeight: 1.6, margin: '0 0 10px' }}>
-                Nova is an artificial intelligence sounding board built to help you untangle thoughts and find the right words.
+                Nova is an AI support sounding board built to help you untangle thoughts and prepare conversations.
               </p>
               <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '0.88rem', color: 'var(--tw-text-muted)', lineHeight: 1.6 }}>
-                <li>Nova is <strong>not a human being</strong> and not a member of your Circle.</li>
-                <li>Nova cannot read your Haven entries or access your Circle conversations unless you choose to paste or discuss them in Nova.</li>
+                <li>Nova is <strong>not a person</strong> and not a member of your Circle.</li>
+                <li>Nova cannot read your Haven entries, Emotional Calendar, or conversations unless you choose to paste or discuss them directly in Nova.</li>
                 <li>Your chats with Nova are private and are never shared with parents, counselors, or Circle members.</li>
               </ul>
             </div>
 
-            {/* 6. Circle Connections */}
+            {/* 7. Circle Connections */}
             <div
               style={{
                 background: 'var(--tw-surface)',
@@ -182,11 +211,11 @@ function SettingsPrivacy() {
                 What is shared with Circle connections
               </h2>
               <p style={{ fontSize: '0.92rem', color: 'var(--tw-text-muted)', lineHeight: 1.6, margin: 0 }}>
-                Your Circle contains real people only, added deliberately through their verified Two-Way ID. Private spaces (My Haven, Emotional Calendar, and unsent drafts) are <strong>never automatically shared</strong> with Circle connections.
+                Your Circle contains real people only, added using their unique Two-Way ID. Private spaces (My Haven, Emotional Calendar, and unsent drafts) are <strong>never automatically shared</strong> with Circle connections. Only messages you explicitly send are received.
               </p>
             </div>
 
-            {/* 7. Prototype Data Notice */}
+            {/* 8. Prototype Data Notice */}
             <div
               style={{
                 background: 'var(--tw-surface-soft)',
@@ -197,10 +226,10 @@ function SettingsPrivacy() {
               }}
             >
               <h2 style={{ fontSize: '1.15rem', fontWeight: 900, margin: '0 0 8px', color: 'var(--tw-text)' }}>
-                Prototype vs. Production data notice
+                Prototype data notice
               </h2>
               <p style={{ fontSize: '0.92rem', color: 'var(--tw-text-muted)', lineHeight: 1.6, margin: 0 }}>
-                In this prototype version, your data is stored directly in your browser's local memory (localStorage). It is temporary and tied to this device. The upcoming production release will transition to encrypted, authenticated cloud databases with enterprise-grade privacy controls.
+                In this prototype version, your information is saved locally in your browser (localStorage). It is temporary and tied to this device. The production version of Two-Way will use secure backend storage.
               </p>
             </div>
           </div>

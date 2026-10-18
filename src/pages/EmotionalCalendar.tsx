@@ -620,18 +620,6 @@ function EmotionalCalendar() {
                 </p>
 
                 <div>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      navigate(
-                        '/app/teen/nova',
-                      )
-                    }
-                  >
-                    Talk to Nova →
-                  </button>
-
                   <button
                     type="button"
                     onClick={() =>
@@ -642,7 +630,6 @@ function EmotionalCalendar() {
                   >
                     Write it down →
                   </button>
-
                 </div>
 
               </div>
