@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
+import ParentLayout from '../layouts/ParentLayout';
+import TeenLayout from '../layouts/TeenLayout';
 
 function Profile() {
   const navigate = useNavigate();
@@ -9,6 +11,7 @@ function Profile() {
 
   const isParent = location.pathname.startsWith('/app/parent');
   const baseRoute = isParent ? '/app/parent' : '/app/teen';
+  const Layout = isParent ? ParentLayout : TeenLayout;
 
   const registeredRole = localStorage.getItem('twoway_registered_role');
   const userRoleDisplay =
@@ -39,7 +42,6 @@ function Profile() {
       'Prefer not to say',
   );
 
-  // Profile picture: load from persisted user profile storage
   const [avatarImage, setAvatarImage] = useState<string | null>(
     () => localStorage.getItem('twoway_profile_avatar') || null,
   );
@@ -50,13 +52,12 @@ function Profile() {
   const [isEditing, setIsEditing] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
-  // Two-Way ID is protected and unique to the user
   const [twoWayId] = useState(
     () => localStorage.getItem('twoway_user_id') || 'TW-4920',
   );
 
   const handleSave = () => {
-    localStorage.setItem('twoway_profile_name', name.trim() || 'Alex');
+    localStorage.setItem('twoway_profile_name', name.trim() || (isParent ? 'Parent' : 'Alex'));
     localStorage.setItem('twoway_profile_pronouns', pronouns.trim());
     localStorage.setItem('twoway_profile_gender', gender);
     setIsEditing(false);
@@ -64,9 +65,8 @@ function Profile() {
     setTimeout(() => setSavedSuccess(false), 2500);
   };
 
-  const initialLetter = (name.trim().charAt(0) || 'T').toUpperCase();
+  const initialLetter = (name.trim().charAt(0) || (isParent ? 'P' : 'T')).toUpperCase();
 
-  // Profile picture file handler
   const handlePhotoClick = () => {
     setAvatarError(null);
     fileInputRef.current?.click();
@@ -74,24 +74,19 @@ function Profile() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    // Reset file input so selecting the same file again triggers change
     e.target.value = '';
 
-    if (!file) {
-      return;
-    }
+    if (!file) return;
 
     setAvatarError(null);
     setAvatarNotice(null);
 
-    // Validate mime type
     const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
     if (!validTypes.includes(file.type)) {
       setAvatarError('Please select a valid image file (JPG, PNG, WebP, or GIF).');
       return;
     }
 
-    // Limit size to 4MB for responsive and safe local persistence
     const maxSizeBytes = 4 * 1024 * 1024;
     if (file.size > maxSizeBytes) {
       setAvatarError('The selected image is larger than 4MB. Please choose a smaller photo.');
@@ -103,7 +98,7 @@ function Profile() {
     const reader = new FileReader();
     reader.onerror = () => {
       setIsProcessingImage(false);
-      setAvatarError('Failed to read the image file. Please try again.');
+      setAvatarError('Failed to read the selected image file. Please try again.');
     };
 
     reader.onload = () => {
@@ -116,42 +111,31 @@ function Profile() {
         setTimeout(() => setAvatarNotice(null), 3000);
       } catch (storageErr) {
         setIsProcessingImage(false);
-        // If localStorage quota exceeded, compress or notify safely
-        console.error('Failed to store profile photo in localStorage:', storageErr);
-        setAvatarError('Could not save photo to local device storage (quota exceeded).');
+        console.error('Failed to store avatar in localStorage:', storageErr);
+        setAvatarError('Could not save photo to device storage (quota exceeded).');
       }
     };
 
     reader.readAsDataURL(file);
   };
 
-  return (
-    <main className="profile-page">
-      <div className="profile-shell">
+  const handleRemovePhoto = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    localStorage.removeItem('twoway_profile_avatar');
+    setAvatarImage(null);
+    setAvatarNotice('Photo removed.');
+    setTimeout(() => setAvatarNotice(null), 2500);
+  };
 
-        {/* HEADER */}
-        <header className="profile-header">
-          <button
-            type="button"
-            aria-label="Go back"
-            onClick={() => navigate(baseRoute)}
-          >
-            ←
-          </button>
+  // -------------------------------------------------------------
+  // PARENT PRESENTATION: MONOCHROMATIC BLACK & WHITE
+  // -------------------------------------------------------------
+  if (isParent) {
+    return (
+      <Layout>
+        <div className="parent-dashboard">
 
-          <span>PROFILE</span>
-
-          <div />
-        </header>
-
-        {/* PROFILE HERO */}
-        <motion.section
-          className="profile-hero"
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-        >
-          {/* Real hidden file input */}
+          {/* Hidden file input */}
           <input
             ref={fileInputRef}
             type="file"
@@ -161,293 +145,157 @@ function Profile() {
             aria-label="Upload profile picture"
           />
 
-          <div className="profile-avatar-wrapper">
-            <div
-              className={`profile-avatar ${avatarImage ? 'has-image' : ''}`}
-              title={avatarImage ? 'Click plus button to change picture' : 'Upload profile picture'}
-            >
-              {avatarImage ? (
-                <img
-                  src={avatarImage}
-                  alt={`${name}'s profile`}
-                  className="profile-avatar-img"
-                />
-              ) : (
-                <span>{initialLetter}</span>
-              )}
-
-              {/* Working plus (+) button control for profile picture */}
+          {/* HEADER */}
+          <motion.section
+            className="parent-hero"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35 }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '14px' }}>
               <button
                 type="button"
-                className="profile-picture-plus"
-                onClick={handlePhotoClick}
-                aria-label={avatarImage ? 'Change profile picture' : 'Add profile picture'}
-                title={avatarImage ? 'Change profile picture' : 'Add profile picture'}
-                disabled={isProcessingImage}
-              >
-                {isProcessingImage ? '…' : '+'}
-              </button>
-            </div>
-
-            {avatarError && (
-              <p
-                role="alert"
-                style={{
-                  margin: '8px 0 0',
-                  fontSize: '0.74rem',
-                  fontWeight: 700,
-                  color: 'var(--tw-accent-red, #dc2626)',
-                  maxWidth: '220px',
-                  lineHeight: 1.35,
+                className="parent-back-btn"
+                aria-label="Go back"
+                title="Go back"
+                onClick={() => {
+                  if (window.history.length > 1) {
+                    navigate(-1);
+                  } else {
+                    navigate(baseRoute);
+                  }
                 }}
               >
-                {avatarError}
-              </p>
-            )}
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+              </button>
+
+              <span className="parent-hero-pill" style={{ margin: 0 }}>
+                ACCOUNT DETAILS
+              </span>
+            </div>
+
+            <h1>Parent Profile.</h1>
+            <p>
+              Your personal profile and account settings. Your Two-Way ID and role are protected.
+            </p>
+          </motion.section>
+
+          {/* PROFILE CARD */}
+          <motion.section
+            className="parent-card"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.05 }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div
+                  onClick={handlePhotoClick}
+                  style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '50%',
+                    border: '2px solid var(--parent-border)',
+                    background: 'var(--parent-surface-subtle)',
+                    display: 'grid',
+                    placeItems: 'center',
+                    cursor: 'pointer',
+                    overflow: 'hidden',
+                  }}
+                  title="Click to change photo"
+                >
+                  {avatarImage ? (
+                    <img src={avatarImage} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <strong style={{ fontSize: '1.5rem', color: 'var(--parent-text)' }}>{initialLetter}</strong>
+                  )}
+                </div>
+
+                <div>
+                  <strong style={{ display: 'block', fontSize: '1.25rem', color: 'var(--parent-text)' }}>{name}</strong>
+                  <span style={{ fontSize: '0.84rem', color: 'var(--parent-text-secondary)' }}>{userRoleDisplay} · {twoWayId}</span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {isEditing ? (
+                  <>
+                    <button type="button" className="parent-btn-primary" onClick={handleSave}>
+                      Save Changes
+                    </button>
+                    <button type="button" className="parent-btn-ghost" onClick={() => setIsEditing(false)}>
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <button type="button" className="parent-btn-secondary" onClick={() => setIsEditing(true)}>
+                    Edit Profile
+                  </button>
+                )}
+              </div>
+            </div>
 
             {avatarNotice && (
-              <p
-                role="status"
-                style={{
-                  margin: '8px 0 0',
-                  fontSize: '0.74rem',
-                  fontWeight: 800,
-                  color: 'var(--tw-primary)',
-                  maxWidth: '220px',
-                  lineHeight: 1.35,
-                }}
-              >
+              <div style={{ padding: '8px 12px', background: 'var(--parent-accent-soft)', border: '1px solid var(--parent-border)', borderRadius: '6px', fontSize: '0.82rem', marginBottom: '16px', color: 'var(--parent-text)' }}>
                 ✓ {avatarNotice}
-              </p>
-            )}
-          </div>
-
-          <div className="profile-identity">
-            <span className="profile-eyebrow">
-              YOUR PERSONAL SPACE
-            </span>
-
-            <h1>{name}</h1>
-
-            <p>
-              Manage your personal details. Account identity is kept protected.
-            </p>
-          </div>
-        </motion.section>
-
-        {/* PROFILE DETAILS */}
-        <section className="profile-section">
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '14px',
-            }}
-          >
-            <span className="profile-section-label" style={{ margin: 0 }}>
-              YOUR DETAILS
-            </span>
-
-            {!isEditing ? (
-              <button
-                type="button"
-                onClick={() => setIsEditing(true)}
-                style={{
-                  background: 'var(--tw-surface)',
-                  border: '2px solid var(--tw-border)',
-                  borderRadius: '10px',
-                  padding: '6px 14px',
-                  font: 'inherit',
-                  fontSize: '0.72rem',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  color: 'var(--tw-text)',
-                  boxShadow: '2px 2px 0px var(--tw-border)',
-                  transition: 'transform 120ms ease, box-shadow 120ms ease',
-                }}
-              >
-                Edit Details
-              </button>
-            ) : (
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  style={{
-                    background: 'var(--tw-primary)',
-                    color: 'var(--tw-primary-text, #ffffff)',
-                    border: '2px solid var(--tw-border)',
-                    borderRadius: '10px',
-                    padding: '6px 14px',
-                    font: 'inherit',
-                    fontSize: '0.72rem',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    boxShadow: '2px 2px 0px var(--tw-border)',
-                  }}
-                >
-                  Save
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(false)}
-                  style={{
-                    background: 'var(--tw-surface)',
-                    border: '2px solid var(--tw-border)',
-                    borderRadius: '10px',
-                    padding: '6px 14px',
-                    font: 'inherit',
-                    fontSize: '0.72rem',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    color: 'var(--tw-text)',
-                    boxShadow: '2px 2px 0px var(--tw-border)',
-                  }}
-                >
-                  Cancel
-                </button>
               </div>
             )}
-          </div>
+            {avatarError && (
+              <div style={{ padding: '8px 12px', background: 'var(--parent-surface-subtle)', border: '1px solid var(--parent-border)', borderRadius: '6px', fontSize: '0.82rem', marginBottom: '16px', color: 'var(--parent-text)' }}>
+                {avatarError}
+              </div>
+            )}
 
-          {savedSuccess && (
-            <div
-              style={{
-                padding: '12px 16px',
-                background: 'var(--tw-primary-soft)',
-                border: '2px solid var(--tw-border)',
-                borderRadius: '10px',
-                color: 'var(--tw-primary)',
-                fontSize: '0.78rem',
-                fontWeight: 800,
-                marginBottom: '16px',
-                boxShadow: '2px 2px 0px var(--tw-border)',
-              }}
-            >
-              ✓ Profile details updated successfully.
-            </div>
-          )}
-
-          <div className="profile-list">
-            {/* NAME */}
-            <div className="profile-row">
-              <div style={{ flex: 1 }}>
-                <span>Display Name</span>
+            {/* DETAILS TABLE */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', borderTop: '1px solid var(--parent-border)', paddingTop: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.88rem', color: 'var(--parent-text-secondary)' }}>Display Name</span>
                 {isEditing ? (
                   <input
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    style={{
-                      border: '2px solid var(--tw-border)',
-                      borderRadius: '8px',
-                      background: 'var(--tw-surface-soft)',
-                      color: 'var(--tw-text)',
-                      padding: '8px 10px',
-                      font: 'inherit',
-                      fontSize: '0.9rem',
-                      fontWeight: 600,
-                      marginTop: '4px',
-                      maxWidth: '300px',
-                    }}
+                    style={{ border: '1px solid var(--parent-border)', borderRadius: '6px', padding: '6px 10px', fontSize: '0.9rem', width: '200px', background: 'var(--parent-surface)', color: 'var(--parent-text)' }}
                   />
                 ) : (
-                  <strong>{name}</strong>
+                  <strong style={{ fontSize: '0.95rem', color: 'var(--parent-text)' }}>{name}</strong>
                 )}
               </div>
-            </div>
 
-            {/* PRONOUNS */}
-            <div className="profile-row">
-              <div style={{ flex: 1 }}>
-                <span>Pronouns</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.88rem', color: 'var(--parent-text-secondary)' }}>Pronouns</span>
                 {isEditing ? (
-                  <div>
-                    <select
-                      value={['She/her', 'He/him', 'They/them', 'Prefer not to say'].includes(pronouns) ? pronouns : (pronouns ? 'Custom' : '')}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === 'Custom') {
-                          if (['She/her', 'He/him', 'They/them', 'Prefer not to say'].includes(pronouns)) {
-                            setPronouns('');
-                          }
-                        } else {
-                          setPronouns(val);
-                        }
-                      }}
-                      style={{
-                        border: '2px solid var(--tw-border)',
-                        borderRadius: '8px',
-                        background: 'var(--tw-surface-soft)',
-                        color: 'var(--tw-text)',
-                        padding: '8px 10px',
-                        font: 'inherit',
-                        fontSize: '0.9rem',
-                        fontWeight: 600,
-                        marginTop: '4px',
-                        maxWidth: '300px',
-                        width: '100%',
-                        display: 'block',
-                      }}
-                    >
-                      <option value="">Not specified / Select pronouns</option>
-                      <option value="She/her">She/her</option>
-                      <option value="He/him">He/him</option>
-                      <option value="They/them">They/them</option>
-                      <option value="Prefer not to say">Prefer not to say</option>
-                      <option value="Custom">Custom / Enter your own</option>
-                    </select>
-
-                    {(!['She/her', 'He/him', 'They/them', 'Prefer not to say'].includes(pronouns) || pronouns === '') && (
-                      <input
-                        type="text"
-                        value={pronouns}
-                        onChange={(e) => setPronouns(e.target.value)}
-                        placeholder="e.g. she/they, ze/zir, any pronouns"
-                        style={{
-                          border: '2px solid var(--tw-border)',
-                          borderRadius: '8px',
-                          background: 'var(--tw-surface-soft)',
-                          color: 'var(--tw-text)',
-                          padding: '8px 10px',
-                          font: 'inherit',
-                          fontSize: '0.9rem',
-                          fontWeight: 600,
-                          marginTop: '8px',
-                          maxWidth: '300px',
-                          width: '100%',
-                          display: 'block',
-                        }}
-                      />
-                    )}
-                  </div>
+                  <input
+                    type="text"
+                    value={pronouns}
+                    onChange={(e) => setPronouns(e.target.value)}
+                    placeholder="e.g. she/her, they/them"
+                    style={{ border: '1px solid var(--parent-border)', borderRadius: '6px', padding: '6px 10px', fontSize: '0.9rem', width: '200px', background: 'var(--parent-surface)', color: 'var(--parent-text)' }}
+                  />
                 ) : (
-                  <strong>{pronouns || 'Not specified'}</strong>
+                  <strong style={{ fontSize: '0.95rem', color: 'var(--parent-text)' }}>{pronouns || 'Not specified'}</strong>
                 )}
               </div>
-            </div>
 
-            {/* GENDER */}
-            <div className="profile-row">
-              <div style={{ flex: 1 }}>
-                <span>Gender</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.88rem', color: 'var(--parent-text-secondary)' }}>Gender</span>
                 {isEditing ? (
                   <select
                     value={gender}
                     onChange={(e) => setGender(e.target.value)}
-                    style={{
-                      border: '2px solid var(--tw-border)',
-                      borderRadius: '8px',
-                      padding: '8px 10px',
-                      font: 'inherit',
-                      fontSize: '0.9rem',
-                      fontWeight: 600,
-                      marginTop: '4px',
-                      maxWidth: '300px',
-                      background: 'var(--tw-surface-soft)',
-                      color: 'var(--tw-text)',
-                    }}
+                    style={{ border: '1px solid var(--parent-border)', borderRadius: '6px', padding: '6px 10px', fontSize: '0.9rem', width: '200px', background: 'var(--parent-surface)', color: 'var(--parent-text)' }}
                   >
                     <option value="Female">Female</option>
                     <option value="Male">Male</option>
@@ -456,98 +304,430 @@ function Profile() {
                     <option value="Other">Other</option>
                   </select>
                 ) : (
-                  <strong>{gender}</strong>
+                  <strong style={{ fontSize: '0.95rem', color: 'var(--parent-text)' }}>{gender}</strong>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.88rem', color: 'var(--parent-text-secondary)' }}>Account Role</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <strong style={{ fontSize: '0.95rem', color: 'var(--parent-text)' }}>{userRoleDisplay}</strong>
+                  <span style={{ fontSize: '0.65rem', fontWeight: 850, padding: '2px 6px', background: 'var(--parent-surface-subtle)', border: '1px solid var(--parent-border)', borderRadius: '4px', color: 'var(--parent-text)' }}>
+                    ROLE
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.88rem', color: 'var(--parent-text-secondary)' }}>Two-Way ID</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <strong style={{ fontFamily: 'monospace', fontSize: '1.05rem', color: 'var(--parent-text)' }}>{twoWayId}</strong>
+                  <span style={{ fontSize: '0.65rem', fontWeight: 850, padding: '2px 6px', background: 'var(--parent-surface-subtle)', border: '1px solid var(--parent-border)', borderRadius: '4px', color: 'var(--parent-text)' }}>
+                    VERIFIED
+                  </span>
+                </div>
+              </div>
+            </div>
+          </motion.section>
+
+          {/* SETTINGS LINK CARD */}
+          <motion.section
+            className="parent-card"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.1 }}
+            style={{ padding: 0, overflow: 'hidden' }}
+          >
+            <button
+              type="button"
+              onClick={() => navigate(`${baseRoute}/settings`, { state: { from: `${baseRoute}/profile` } })}
+              style={{
+                width: '100%',
+                padding: '20px 24px',
+                background: 'transparent',
+                border: 'none',
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+              }}
+            >
+              <strong style={{ fontSize: '1.05rem', color: 'var(--parent-text)', fontWeight: 800 }}>
+                Settings
+              </strong>
+            </button>
+          </motion.section>
+
+        </div>
+      </Layout>
+    );
+  }
+
+  // -------------------------------------------------------------
+  // TEEN PRESENTATION: EXISTING TEEN VISUAL IDENTITY INTACT
+  // -------------------------------------------------------------
+  return (
+    <Layout>
+      <main className="profile-page">
+        <div className="profile-shell">
+
+          {/* Hidden file input for photo upload */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            style={{ display: 'none' }}
+            onChange={handleFileChange}
+            aria-label="Upload profile picture"
+          />
+
+          {/* HEADER */}
+          <header className="profile-header">
+            <button
+              type="button"
+              className="teen-back-btn"
+              aria-label="Go back"
+              title="Go back"
+              onClick={() => {
+                if (window.history.length > 1) {
+                  navigate(-1);
+                } else {
+                  navigate(baseRoute);
+                }
+              }}
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+            </button>
+
+            <span className="profile-header-title">
+              ACCOUNT &amp; IDENTITY
+            </span>
+
+            <div />
+          </header>
+
+          {/* INTRO */}
+          <motion.section
+            className="profile-intro"
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            <p className="profile-eyebrow">
+              ACCOUNT
+            </p>
+
+            <h1>
+              {name || 'Your Profile'}.
+            </h1>
+
+            <p className="profile-description">
+              Manage your personal details, profile picture, and identity.
+            </p>
+          </motion.section>
+
+          {/* AVATAR + BASIC DETAILS */}
+          <section className="profile-section">
+            <div className="profile-hero-card">
+              <div
+                style={{ position: 'relative', width: '72px', height: '72px', flexShrink: 0 }}
+              >
+                <div
+                  className="profile-avatar"
+                  onClick={handlePhotoClick}
+                  title={avatarImage ? 'Tap to change profile picture' : 'Tap to add profile photo'}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handlePhotoClick();
+                    }
+                  }}
+                  aria-label={avatarImage ? 'Change profile picture' : 'Add profile photo'}
+                  style={{ cursor: 'pointer', width: '100%', height: '100%' }}
+                >
+                  {avatarImage ? (
+                    <img
+                      src={avatarImage}
+                      alt="Profile"
+                      className="profile-avatar-img"
+                    />
+                  ) : (
+                    <span>{initialLetter}</span>
+                  )}
+                </div>
+
+                {/* CLEAR FUNCTIONAL PLUS (+) BUTTON */}
+                <button
+                  type="button"
+                  className="profile-add-photo-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePhotoClick();
+                  }}
+                  disabled={isProcessingImage}
+                  aria-label="Add profile photo"
+                  title="Add profile photo"
+                  style={{
+                    position: 'absolute',
+                    bottom: '-2px',
+                    right: '-2px',
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
+                    background: 'var(--tw-primary)',
+                    color: 'var(--tw-primary-text, #ffffff)',
+                    border: '2px solid var(--tw-border)',
+                    display: 'grid',
+                    placeItems: 'center',
+                    cursor: isProcessingImage ? 'wait' : 'pointer',
+                    boxShadow: '1px 1px 0px var(--tw-border)',
+                    zIndex: 4,
+                    opacity: isProcessingImage ? 0.6 : 1,
+                  }}
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="profile-hero-info">
+                <h2>{name}</h2>
+                <p className="profile-handle">
+                  Two-Way ID: <strong>{twoWayId}</strong>
+                </p>
+
+                {avatarImage && (
+                  <div style={{ marginTop: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={handleRemovePhoto}
+                      aria-label="Remove photo"
+                      style={{
+                        background: 'transparent',
+                        border: '1px solid var(--tw-border)',
+                        borderRadius: '6px',
+                        padding: '3px 8px',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        color: 'var(--tw-text-muted)',
+                      }}
+                    >
+                      Remove photo
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
 
-            {/* ROLE - PROTECTED */}
-            <div className="profile-row">
-              <div>
-                <span>Account Role</span>
-                <strong>{userRoleDisplay}</strong>
-              </div>
-              <span
-                style={{
-                  fontSize: '0.65rem',
-                  fontWeight: 800,
-                  letterSpacing: '0.08em',
-                  color: 'var(--tw-primary)',
-                  background: 'var(--tw-primary-soft)',
-                  padding: '4px 8px',
-                  border: '1px solid var(--tw-border)',
-                }}
+            {avatarNotice && (
+              <div
+                className="circle-status-banner circle-status-banner--success"
+                style={{ marginTop: '12px' }}
               >
-                PROTECTED
+                ✓ {avatarNotice}
+              </div>
+            )}
+
+            {avatarError && (
+              <div
+                className="circle-status-banner circle-status-banner--error"
+                style={{ marginTop: '12px' }}
+              >
+                {avatarError}
+              </div>
+            )}
+          </section>
+
+          {/* EDITABLE DETAILS */}
+          <section className="profile-section">
+            <div className="profile-section-header">
+              <span className="profile-section-label">
+                PERSONAL DETAILS
               </span>
+
+              {isEditing ? (
+                <button
+                  type="button"
+                  className="profile-edit-btn"
+                  onClick={handleSave}
+                >
+                  Save Changes
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="profile-edit-btn"
+                  onClick={() => setIsEditing(true)}
+                >
+                  Edit Profile
+                </button>
+              )}
             </div>
 
-            {/* TWO-WAY ID - PROTECTED */}
-            <div className="profile-row">
-              <div>
-                <span>Two-Way ID (Unique)</span>
-                <strong>{twoWayId}</strong>
-              </div>
-              <span
-                style={{
-                  fontSize: '0.65rem',
-                  fontWeight: 800,
-                  letterSpacing: '0.08em',
-                  color: 'var(--tw-text-muted)',
-                  background: 'var(--tw-surface-raised)',
-                  padding: '4px 8px',
-                  borderRadius: '6px',
-                  border: '1.5px solid var(--tw-border)',
-                }}
+            {savedSuccess && (
+              <div
+                className="circle-status-banner circle-status-banner--success"
+                style={{ marginBottom: '16px' }}
               >
-                VERIFIED ID
-              </span>
-            </div>
-          </div>
-        </section>
+                ✓ Profile saved successfully
+              </div>
+            )}
 
-        {/* =========================================
-            SETTINGS AT BOTTOM OF PROFILE
-        ========================================= */}
-        <section className="profile-section" style={{ marginTop: '28px' }}>
-          <span className="profile-section-label">
-            SETTINGS &amp; PREFERENCES
-          </span>
+            <div className="profile-table">
+              {/* DISPLAY NAME */}
+              <div className="profile-row">
+                <div style={{ flex: 1 }}>
+                  <span>Display Name</span>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      style={{
+                        border: '2px solid var(--tw-border)',
+                        borderRadius: '8px',
+                        padding: '8px 10px',
+                        font: 'inherit',
+                        fontSize: '0.95rem',
+                        fontWeight: 700,
+                        marginTop: '4px',
+                        maxWidth: '300px',
+                        width: '100%',
+                      }}
+                    />
+                  ) : (
+                    <strong>{name}</strong>
+                  )}
+                </div>
+              </div>
 
-          <div className="profile-links">
-            <button
-              type="button"
-              className="profile-settings-link"
-              onClick={() => navigate(`${baseRoute}/settings`, { state: { from: `${baseRoute}/profile` } })}
-              aria-label="Settings"
-            >
-              <div>
-                <strong style={{ display: 'block', fontSize: '1rem', fontWeight: 900 }}>
-                  Settings
-                </strong>
+              {/* PRONOUNS */}
+              <div className="profile-row">
+                <div style={{ flex: 1 }}>
+                  <span>Pronouns</span>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={pronouns}
+                      onChange={(e) => setPronouns(e.target.value)}
+                      placeholder="e.g. she/her, they/them"
+                      style={{
+                        border: '2px solid var(--tw-border)',
+                        borderRadius: '8px',
+                        padding: '8px 10px',
+                        font: 'inherit',
+                        fontSize: '0.9rem',
+                        fontWeight: 600,
+                        marginTop: '4px',
+                        maxWidth: '300px',
+                        width: '100%',
+                      }}
+                    />
+                  ) : (
+                    <strong>{pronouns || 'Not specified'}</strong>
+                  )}
+                </div>
+              </div>
+
+              {/* ROLE - PROTECTED */}
+              <div className="profile-row">
+                <div>
+                  <span>Account Role</span>
+                  <strong>{userRoleDisplay}</strong>
+                </div>
                 <span
                   style={{
-                    display: 'block',
-                    fontSize: '0.8rem',
-                    color: 'var(--tw-text-muted)',
-                    fontWeight: 600,
-                    marginTop: '2px',
+                    fontSize: '0.65rem',
+                    fontWeight: 800,
+                    letterSpacing: '0.08em',
+                    color: 'var(--tw-primary)',
+                    background: 'var(--tw-primary-soft)',
+                    padding: '4px 8px',
+                    border: '1px solid var(--tw-border)',
                   }}
                 >
-                  Privacy, notifications, appearance, help &amp; account
+                  PROTECTED
                 </span>
               </div>
-            </button>
-          </div>
-        </section>
 
-        {/* FOOTER */}
-        <footer className="profile-footer">
-          Your personal space stays yours.
-        </footer>
+              {/* TWO-WAY ID - PROTECTED */}
+              <div className="profile-row">
+                <div>
+                  <span>Two-Way ID (Unique)</span>
+                  <strong>{twoWayId}</strong>
+                </div>
+                <span
+                  style={{
+                    fontSize: '0.65rem',
+                    fontWeight: 800,
+                    letterSpacing: '0.08em',
+                    color: 'var(--tw-text-muted)',
+                    background: 'var(--tw-surface-raised)',
+                    padding: '4px 8px',
+                    borderRadius: '6px',
+                    border: '1.5px solid var(--tw-border)',
+                  }}
+                >
+                  VERIFIED ID
+                </span>
+              </div>
+            </div>
+          </section>
 
-      </div>
-    </main>
+          {/* SETTINGS AT BOTTOM OF PROFILE */}
+          <section className="profile-section" style={{ marginTop: '28px' }}>
+            <div className="profile-links">
+              <button
+                type="button"
+                className="profile-settings-link"
+                onClick={() => navigate(`${baseRoute}/settings`, { state: { from: `${baseRoute}/profile` } })}
+                aria-label="Settings"
+              >
+                <div>
+                  <strong style={{ display: 'block', fontSize: '1rem', fontWeight: 900 }}>
+                    Settings
+                  </strong>
+                </div>
+              </button>
+            </div>
+          </section>
+
+          {/* FOOTER */}
+          <footer className="profile-footer">
+            Your personal space stays yours.
+          </footer>
+
+        </div>
+      </main>
+    </Layout>
   );
 }
 

@@ -1,32 +1,17 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { evaluateTeenEligibility } from '../utils/ageVerification'
 
 export default function BirthdayCheck() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [birthday, setBirthday] = useState('')
   const [error, setError] = useState('')
+  const [isVerifying, setIsVerifying] = useState(false)
 
-  const calculateAge = (dateOfBirth: string) => {
-    const today = new Date()
-    const birthDate = new Date(`${dateOfBirth}T00:00:00`)
+  const returnTo = searchParams.get('returnTo') || '/auth'
 
-    let age = today.getFullYear() - birthDate.getFullYear()
-
-    const monthDifference =
-      today.getMonth() - birthDate.getMonth()
-
-    if (
-      monthDifference < 0 ||
-      (monthDifference === 0 &&
-        today.getDate() < birthDate.getDate())
-    ) {
-      age--
-    }
-
-    return age
-  }
-
-  const handleContinue = () => {
+  const handleContinue = async () => {
     setError('')
 
     if (!birthday) {
@@ -34,34 +19,66 @@ export default function BirthdayCheck() {
       return
     }
 
-    const selectedDate = new Date(`${birthday}T00:00:00`)
-    const today = new Date()
+    const eligibility = evaluateTeenEligibility(birthday)
 
-    if (selectedDate > today) {
-      setError('Your birthday cannot be in the future.')
+    if (eligibility.eligibilityStatus === 'underage') {
+      setError('Two-Way is available for teens aged 13–19.')
       return
     }
 
-    const age = calculateAge(birthday)
-
-    if (age < 13) {
+    if (eligibility.eligibilityStatus === 'aged_out') {
       setError(
-        'Two-Way is currently available for teens aged 13–17.'
+        'The Teen experience is for ages 13–19. At age 20 and above, please choose the Parent role or another appropriate account.'
       )
       return
     }
 
-    if (age > 17) {
-      setError(
-        'The Teen experience is for ages 13–17. Please go back and choose the role that fits you.'
-      )
+    if (!eligibility.isEligibleTeen) {
+      setError(eligibility.message || 'Please enter a valid date of birth.')
       return
+    }
+
+    setIsVerifying(true)
+    try {
+      // Re-verify with backend to establish server-side authorization
+      const sessionToken = localStorage.getItem('twoway_session_token')
+      const regEmail = localStorage.getItem('twoway_registered_email')
+
+      await fetch('/api/auth/verify-dob', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
+        },
+        body: JSON.stringify({
+          birthDate: birthday,
+          email: regEmail || undefined,
+          role: 'teen',
+        }),
+      })
+    } catch {
+      // Backend sync error handled gracefully without breaking client setup
+    } finally {
+      setIsVerifying(false)
     }
 
     localStorage.setItem('twoway_selected_role', 'teen')
     localStorage.setItem('twoway_signup_dob', birthday)
+    localStorage.setItem('twoway_registered_dob', birthday)
 
-    navigate('/auth')
+    // Check if user was already logged in via social provider
+    const isSocialLoggedIn = localStorage.getItem('twoway_logged_in') === 'true'
+    const isOnboarded = localStorage.getItem('twoway_onboarding_complete') === 'true'
+
+    if (isSocialLoggedIn) {
+      if (isOnboarded) {
+        navigate('/app/teen')
+      } else {
+        navigate('/onboarding')
+      }
+    } else {
+      navigate(returnTo)
+    }
   }
 
   return (
@@ -84,6 +101,8 @@ export default function BirthdayCheck() {
           >
             <button
               type="button"
+              aria-label="Go back"
+              title="Go back"
               onClick={() => navigate('/roles')}
               style={{
                 border: 'none',
@@ -91,10 +110,11 @@ export default function BirthdayCheck() {
                 padding: 0,
                 marginBottom: '32px',
                 cursor: 'pointer',
-                fontSize: '0.9rem',
+                fontSize: '1.2rem',
+                fontWeight: 700,
               }}
             >
-              ← Back
+              ←
             </button>
 
             <div style={{ marginBottom: '32px' }}>
@@ -197,6 +217,7 @@ export default function BirthdayCheck() {
               <button
                 type="button"
                 onClick={handleContinue}
+                disabled={isVerifying}
                 style={{
                   width: '100%',
                   marginTop: '20px',
@@ -207,10 +228,11 @@ export default function BirthdayCheck() {
                   color: 'var(--tw-primary-text, #ffffff)',
                   fontSize: '0.95rem',
                   fontWeight: 800,
-                  cursor: 'pointer',
+                  cursor: isVerifying ? 'wait' : 'pointer',
+                  opacity: isVerifying ? 0.7 : 1,
                 }}
               >
-                Continue
+                {isVerifying ? 'Verifying age...' : 'Continue'}
               </button>
             </div>
 

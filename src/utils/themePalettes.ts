@@ -467,11 +467,385 @@ export function setSelectedPalette(paletteId: string | null): void {
   applyTheme(canonicalId);
 }
 
-export function initTheme(): void {
-  const current = getSelectedPaletteId();
-  if (current) {
-    applyTheme(current);
-  } else {
-    applyTheme(null);
+// =========================================================
+// PARENT ACCENT PALETTES & THEMES
+// =========================================================
+
+export interface ParentAccentTheme {
+  id: string;
+  name: string;
+  colorName: string;
+  accent: string;
+  accentHover: string;
+  accentSoft: string;
+  accentDarkSoft: string;
+}
+
+export const STORAGE_KEY_PARENT_ACCENT = 'twoway_parent_accent_palette';
+export const STORAGE_KEY_PARENT_THEME_MODE = 'twoway_parent_theme_mode';
+export const STORAGE_KEY_TEEN_THEME_MODE = 'twoway_teen_theme_mode';
+
+export const PARENT_ACCENTS: ParentAccentTheme[] = [
+  {
+    id: 'slate',
+    name: 'Slate Charcoal',
+    colorName: 'Charcoal',
+    accent: '#334155',
+    accentHover: '#1E293B',
+    accentSoft: '#F1F5F9',
+    accentDarkSoft: 'rgba(148, 163, 184, 0.22)',
+  },
+  {
+    id: 'navy',
+    name: 'Navy Insight',
+    colorName: 'Navy',
+    accent: '#1D4ED8',
+    accentHover: '#1E40AF',
+    accentSoft: '#EFF6FF',
+    accentDarkSoft: 'rgba(59, 130, 246, 0.25)',
+  },
+  {
+    id: 'forest',
+    name: 'Forest Spruce',
+    colorName: 'Spruce',
+    accent: '#15803D',
+    accentHover: '#166534',
+    accentSoft: '#DCFCE7',
+    accentDarkSoft: 'rgba(34, 197, 94, 0.25)',
+  },
+  {
+    id: 'umber',
+    name: 'Warm Umber',
+    colorName: 'Umber',
+    accent: '#C2410C',
+    accentHover: '#9A3412',
+    accentSoft: '#FFEDD5',
+    accentDarkSoft: 'rgba(251, 146, 60, 0.25)',
+  },
+  {
+    id: 'burgundy',
+    name: 'Burgundy Wine',
+    colorName: 'Burgundy',
+    accent: '#9F1239',
+    accentHover: '#881337',
+    accentSoft: '#FFE4E6',
+    accentDarkSoft: 'rgba(244, 63, 94, 0.25)',
+  },
+  {
+    id: 'teal',
+    name: 'Quiet Teal',
+    colorName: 'Teal',
+    accent: '#0F766E',
+    accentHover: '#115E59',
+    accentSoft: '#CCFBF1',
+    accentDarkSoft: 'rgba(20, 184, 166, 0.25)',
+  },
+];
+
+const LEGACY_PARENT_ACCENT_MAP: Record<string, string> = {
+  violet: 'slate',
+  rose: 'burgundy',
+  cocoa: 'umber',
+  ocean: 'navy',
+  amber: 'umber',
+};
+
+export function getParentAccents(): ParentAccentTheme[] {
+  return PARENT_ACCENTS;
+}
+
+export function getParentAccentById(id: string | null): ParentAccentTheme {
+  if (!id) return PARENT_ACCENTS[0];
+  const mappedId = LEGACY_PARENT_ACCENT_MAP[id] || id;
+  const found = PARENT_ACCENTS.find((a) => a.id === mappedId);
+  return found || PARENT_ACCENTS[0];
+}
+
+export function getParentAccentId(): string {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_PARENT_ACCENT);
+    if (!raw) return 'slate';
+    return LEGACY_PARENT_ACCENT_MAP[raw] || raw;
+  } catch {
+    return 'slate';
   }
 }
+
+export function setParentAccentId(id: string): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_PARENT_ACCENT, id);
+  } catch (error) {
+    console.error('Error saving parent accent:', error);
+  }
+  applyParentTheme();
+}
+
+export function getParentThemeMode(): 'light' | 'dark' {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_PARENT_THEME_MODE);
+    if (raw === 'dark') return 'dark';
+    return 'light';
+  } catch {
+    return 'light';
+  }
+}
+
+export function setParentThemeMode(mode: 'light' | 'dark'): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_PARENT_THEME_MODE, mode);
+  } catch (error) {
+    console.error('Error saving parent theme mode:', error);
+  }
+  applyParentTheme();
+}
+
+export function getTeenThemeMode(): 'light' | 'dark' {
+  try {
+    return (localStorage.getItem(STORAGE_KEY_TEEN_THEME_MODE) as 'light' | 'dark') || 'light';
+  } catch {
+    return 'light';
+  }
+}
+
+export function setTeenThemeMode(mode: 'light' | 'dark'): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_TEEN_THEME_MODE, mode);
+  } catch (error) {
+    console.error('Error saving teen theme mode:', error);
+  }
+  applyTeenTheme();
+}
+
+/**
+ * Calm, de-saturated palette tokens for Teen Dark Mode.
+ * Replaces aggressive neons with readable, elegant dark values with WCAG AA contrast.
+ */
+interface TeenDarkTokens {
+  primary: string;
+  primaryHover: string;
+  primarySoft: string;
+  secondary: string;
+  accent: string;
+  highlight: string;
+  surface: string;
+  surfaceRaised: string;
+  surfaceSoft: string;
+  border: string;
+  borderStrong: string;
+  textSecondary: string;
+}
+
+export const TEEN_DARK_PALETTE_TOKENS: Record<string, TeenDarkTokens> = {
+  'palette-01': {
+    primary: '#9D85EC',
+    primaryHover: '#8B6FEB',
+    primarySoft: '#2E2254',
+    secondary: '#A5B4FC',
+    accent: '#C4B5FD',
+    highlight: '#DDD6FE',
+    surface: '#181428',
+    surfaceRaised: '#241D3B',
+    surfaceSoft: '#332954',
+    border: '#3F3361',
+    borderStrong: '#66539C',
+    textSecondary: '#C8BFEC',
+  },
+  'palette-02': {
+    primary: '#E0629A',
+    primaryHover: '#D14885',
+    primarySoft: '#3E1C2E',
+    secondary: '#7DD3FC',
+    accent: '#F472B6',
+    highlight: '#FBCFE8',
+    surface: '#1B1322',
+    surfaceRaised: '#291A30',
+    surfaceSoft: '#3C2346',
+    border: '#4C2C57',
+    borderStrong: '#764587',
+    textSecondary: '#E2BFD9',
+  },
+  'palette-03': {
+    primary: '#A855F7',
+    primaryHover: '#9333EA',
+    primarySoft: '#32194D',
+    secondary: '#818CF8',
+    accent: '#C084FC',
+    highlight: '#E9D5FF',
+    surface: '#1A1426',
+    surfaceRaised: '#261B38',
+    surfaceSoft: '#372651',
+    border: '#462F67',
+    borderStrong: '#714B9F',
+    textSecondary: '#D0C1E8',
+  },
+  'palette-04': {
+    primary: '#6366F1',
+    primaryHover: '#4F46E5',
+    primarySoft: '#20244B',
+    secondary: '#818CF8',
+    accent: '#F59E0B',
+    highlight: '#FDE68A',
+    surface: '#14172B',
+    surfaceRaised: '#202442',
+    surfaceSoft: '#2E3460',
+    border: '#3B4278',
+    borderStrong: '#5E6ABF',
+    textSecondary: '#BFC5EA',
+  },
+  'palette-05': {
+    primary: '#3B82F6',
+    primaryHover: '#2563EB',
+    primarySoft: '#16284D',
+    secondary: '#60A5FA',
+    accent: '#93C5FD',
+    highlight: '#DBEAFE',
+    surface: '#111A2C',
+    surfaceRaised: '#1A2742',
+    surfaceSoft: '#24375D',
+    border: '#2F4675',
+    borderStrong: '#4A6EB8',
+    textSecondary: '#BDCEEC',
+  },
+  'palette-06': {
+    primary: '#0284C7',
+    primaryHover: '#0369A1',
+    primarySoft: '#112C42',
+    secondary: '#38BDF8',
+    accent: '#7DD3FC',
+    highlight: '#BAE6FD',
+    surface: '#101B29',
+    surfaceRaised: '#17273C',
+    surfaceSoft: '#213854',
+    border: '#2D4B6E',
+    borderStrong: '#4775AB',
+    textSecondary: '#B7D0E8',
+  },
+  'palette-07': {
+    primary: '#C87B4C',
+    primaryHover: '#B26738',
+    primarySoft: '#382218',
+    secondary: '#84CC16',
+    accent: '#E09F67',
+    highlight: '#FED7AA',
+    surface: '#1E1614',
+    surfaceRaised: '#2C1F1B',
+    surfaceSoft: '#3E2B25',
+    border: '#503830',
+    borderStrong: '#7C574B',
+    textSecondary: '#DCC3BB',
+  },
+  'palette-08': {
+    primary: '#22C55E',
+    primaryHover: '#16A34A',
+    primarySoft: '#143820',
+    secondary: '#4ADE80',
+    accent: '#86EFAC',
+    highlight: '#DCFCE7',
+    surface: '#111E16',
+    surfaceRaised: '#182C20',
+    surfaceSoft: '#223D2D',
+    border: '#2C513B',
+    borderStrong: '#457E5C',
+    textSecondary: '#B9DDC7',
+  },
+};
+
+/**
+ * Apply Parent Theme (Light/Dark mode + chosen accent).
+ * Strictly scoped so it never overwrites teen variables or teen mode.
+ */
+export function applyParentTheme(): void {
+  const root = document.documentElement;
+  const accentId = getParentAccentId();
+  const accentTheme = getParentAccentById(accentId);
+  const mode = getParentThemeMode();
+
+  root.setAttribute('data-parent-theme', mode);
+  root.setAttribute('data-parent-accent', accentTheme.id);
+
+  // Set parent CSS variables on root (which are then inherited by .parent-layout)
+  root.style.setProperty('--parent-accent', accentTheme.accent);
+  root.style.setProperty('--parent-accent-hover', accentTheme.accentHover);
+  root.style.setProperty('--parent-accent-soft', mode === 'dark' ? accentTheme.accentDarkSoft : accentTheme.accentSoft);
+
+  if (mode === 'dark') {
+    root.style.setProperty('--parent-bg', '#0B0B0C');
+    root.style.setProperty('--parent-surface', '#141416');
+    root.style.setProperty('--parent-surface-subtle', '#1E1E22');
+    root.style.setProperty('--parent-surface-raised', '#25252A');
+    root.style.setProperty('--parent-text', '#FFFFFF');
+    root.style.setProperty('--parent-text-secondary', '#A1A1AA');
+    root.style.setProperty('--parent-text-muted', '#71717A');
+    root.style.setProperty('--parent-border', '#27272A');
+    root.style.setProperty('--parent-border-strong', '#52525B');
+    root.style.setProperty('--parent-border-subtle', '#1F1F23');
+    root.style.setProperty('--parent-primary', accentTheme.accent);
+    root.style.setProperty('--parent-primary-hover', accentTheme.accentHover);
+  } else {
+    root.style.setProperty('--parent-bg', '#FFFFFF');
+    root.style.setProperty('--parent-surface', '#FFFFFF');
+    root.style.setProperty('--parent-surface-subtle', '#F8F8F9');
+    root.style.setProperty('--parent-surface-raised', '#F1F1F4');
+    root.style.setProperty('--parent-text', '#000000');
+    root.style.setProperty('--parent-text-secondary', '#52525B');
+    root.style.setProperty('--parent-text-muted', '#71717A');
+    root.style.setProperty('--parent-border', '#E4E4E7');
+    root.style.setProperty('--parent-border-strong', '#000000');
+    root.style.setProperty('--parent-border-subtle', '#F4F4F5');
+    root.style.setProperty('--parent-primary', '#000000');
+    root.style.setProperty('--parent-primary-hover', '#262626');
+  }
+}
+
+/**
+ * Apply Teen Theme (Palette + Light/Dark mode).
+ * Preserves the 8 distinct palettes while using calm, de-saturated values in dark mode.
+ */
+export function applyTeenTheme(): void {
+  const root = document.documentElement;
+  const currentPaletteId = getSelectedPaletteId() || 'palette-01';
+  const teenMode = getTeenThemeMode();
+
+  root.setAttribute('data-teen-theme', teenMode);
+  applyTheme(currentPaletteId);
+
+  if (teenMode === 'dark') {
+    const darkTokens = TEEN_DARK_PALETTE_TOKENS[currentPaletteId] || TEEN_DARK_PALETTE_TOKENS['palette-01'];
+
+    root.style.setProperty('--tw-background', '#0E0B16');
+    root.style.setProperty('--tw-surface', darkTokens.surface);
+    root.style.setProperty('--tw-surface-raised', darkTokens.surfaceRaised);
+    root.style.setProperty('--tw-surface-soft', darkTokens.surfaceSoft);
+    root.style.setProperty('--tw-surface-container', darkTokens.surface);
+    root.style.setProperty('--tw-text', '#F7F6FB');
+    root.style.setProperty('--tw-text-secondary', darkTokens.textSecondary);
+    root.style.setProperty('--tw-text-muted', '#9892B8');
+    root.style.setProperty('--tw-ink', '#FFFFFF');
+    root.style.setProperty('--tw-border', darkTokens.border);
+    root.style.setProperty('--tw-border-strong', darkTokens.borderStrong);
+
+    // Apply de-saturated, calm accents with strong contrast
+    root.style.setProperty('--tw-primary', darkTokens.primary);
+    root.style.setProperty('--tw-primary-hover', darkTokens.primaryHover);
+    root.style.setProperty('--tw-primary-soft', darkTokens.primarySoft);
+    root.style.setProperty('--tw-primary-text', '#FFFFFF');
+    root.style.setProperty('--tw-secondary', darkTokens.secondary);
+    root.style.setProperty('--tw-accent', darkTokens.accent);
+    root.style.setProperty('--tw-highlight', darkTokens.highlight);
+
+    // Mapped teen variables
+    root.style.setProperty('--teen-white', '#0E0B16');
+    root.style.setProperty('--teen-surface', darkTokens.surface);
+    root.style.setProperty('--teen-surface-raised', darkTokens.surfaceRaised);
+    root.style.setProperty('--teen-black', '#F7F6FB');
+    root.style.setProperty('--teen-muted', darkTokens.textSecondary);
+    root.style.setProperty('--teen-gray', darkTokens.border);
+    root.style.setProperty('--teen-accent', darkTokens.primary);
+  }
+}
+
+export function initTheme(): void {
+  applyTeenTheme();
+  applyParentTheme();
+}
+

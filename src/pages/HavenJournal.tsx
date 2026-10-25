@@ -13,6 +13,11 @@ import {
   isJournalSessionUnlocked,
   setJournalSessionUnlocked,
 } from '../utils/journalStorage';
+import {
+  getCurrentTeenAgeStatus,
+  syncServerAgeSession,
+  AGE_OUT_BANNER_MESSAGE,
+} from '../utils/ageVerification';
 
 type ViewMode = 'list' | 'new' | 'edit' | 'read';
 
@@ -23,6 +28,19 @@ export default function HavenJournal() {
   const [entries, setEntries] = useState<JournalEntry[]>(() => loadJournalEntries());
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
+  const [ageStatus, setAgeStatus] = useState(() => getCurrentTeenAgeStatus());
+
+  useEffect(() => {
+    syncServerAgeSession().then((session) => {
+      if (session) {
+        setAgeStatus((prev) => ({
+          ...prev,
+          isAgedOut: session.isAgedOut,
+          isEligibleTeen: session.canCreateContent,
+        }));
+      }
+    });
+  }, []);
 
   // Editor fields
   const [editorTitle, setEditorTitle] = useState('');
@@ -50,6 +68,13 @@ export default function HavenJournal() {
 
   // Track initial values to detect unsaved changes
   const initialEditorState = useRef<{ title: string; body: string }>({ title: '', body: '' });
+
+  // Auto-lock immediately upon navigating away / unmounting component
+  useEffect(() => {
+    return () => {
+      setJournalSessionUnlocked(false);
+    };
+  }, []);
 
   // Listen for storage updates across tabs/windows
   useEffect(() => {
@@ -107,6 +132,10 @@ export default function HavenJournal() {
 
   // Start new entry
   const handleOpenNewEntry = () => {
+    if (ageStatus.isAgedOut) {
+      setErrorMessage('At age 20, teen accounts transition to a restricted read-only state. Creating new entries is closed.');
+      return;
+    }
     setEditorTitle('');
     setEditorBody('');
     initialEditorState.current = { title: '', body: '' };
@@ -123,6 +152,10 @@ export default function HavenJournal() {
 
   // Switch from read mode to edit mode
   const handleStartEdit = () => {
+    if (ageStatus.isAgedOut) {
+      setErrorMessage('At age 20, teen accounts transition to a restricted read-only state. Editing entries is closed.');
+      return;
+    }
     if (!selectedEntry) return;
     setEditorTitle(selectedEntry.title || '');
     setEditorBody(selectedEntry.body || '');
@@ -135,8 +168,13 @@ export default function HavenJournal() {
   };
 
   // Save entry (both create and update)
-  const handleSave = () => {
+  const handleSave = async () => {
     if (isSaving) return; // Prevent double taps
+
+    if (ageStatus.isAgedOut) {
+      setErrorMessage('At age 20, teen accounts transition to a restricted read-only state. Creating new entries is closed.');
+      return;
+    }
 
     const trimmedBody = editorBody.trim();
     if (!trimmedBody) {
@@ -146,6 +184,33 @@ export default function HavenJournal() {
 
     setIsSaving(true);
     setErrorMessage(null);
+
+    // Call server API for strict backend age-gate authorization enforcement
+    try {
+      const sessionToken = localStorage.getItem('twoway_session_token');
+      const response = await fetch('/api/teen/journal', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
+        },
+        body: JSON.stringify({
+          title: editorTitle.trim() || undefined,
+          body: trimmedBody,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        if (errorData.error === 'AGE_RESTRICTED') {
+          setErrorMessage(errorData.message || 'At age 20, teen accounts transition to a restricted read-only state.');
+          setIsSaving(false);
+          return;
+        }
+      }
+    } catch {
+      // Graceful offline fallback
+    }
 
     const result = saveJournalEntry({
       id: viewMode === 'edit' ? selectedEntry?.id : undefined,
@@ -289,18 +354,20 @@ export default function HavenJournal() {
               <button
                 type="button"
                 className="haven-journal-secondary-btn"
-                style={{ minHeight: '40px', padding: '8px 14px', fontSize: '0.78rem' }}
+                style={{ minHeight: '40px', width: '40px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem' }}
                 onClick={handleLockJournal}
+                aria-label="Lock Journal"
                 title="Lock Journal"
               >
-                🔒 Lock
+                🔒
               </button>
             )}
 
             <button
               type="button"
               className="haven-journal-back"
-              aria-label={viewMode === 'list' ? 'My Haven' : 'Back to Journal'}
+              aria-label="Go back"
+              title="Go back"
               onClick={handleHeaderBack}
             >
               ←
@@ -381,11 +448,36 @@ export default function HavenJournal() {
                 type="button"
                 className="haven-journal-lock-toggle"
                 onClick={handleToggleLockConfig}
-                aria-label={lockConfig.enabled ? 'Disable lock' : 'Enable lock'}
+                aria-label={lockConfig.enabled ? 'Disable lock passcode' : 'Enable lock passcode'}
               >
-                {lockConfig.enabled ? '🔒 Lock Active' : '🔓 Add Lock'}
+                {lockConfig.enabled ? '🔒 Passcode Active' : '🔓 Add Passcode'}
               </button>
             </div>
+
+            {/* AGE-OUT RESTRICTION CALM NOTICE */}
+            {ageStatus.isAgedOut && (
+              <div
+                style={{
+                  background: 'var(--tw-surface)',
+                  border: '2px solid var(--tw-border)',
+                  borderLeft: '5px solid #d97706',
+                  borderRadius: '12px',
+                  padding: '16px 20px',
+                  marginBottom: '20px',
+                  boxShadow: '3px 3px 0 rgba(0, 0, 0, 0.06)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '1.1rem' }}>⏳</span>
+                  <strong style={{ fontSize: '0.94rem', color: 'var(--tw-text)', fontWeight: 800 }}>
+                    Account Transition Notice (Read-Only Mode)
+                  </strong>
+                </div>
+                <p style={{ margin: 0, fontSize: '0.86rem', color: 'var(--tw-text-secondary)', lineHeight: 1.55 }}>
+                  {AGE_OUT_BANNER_MESSAGE}
+                </p>
+              </div>
+            )}
 
             {/* SAVE SUCCESS BANNER */}
             <AnimatePresence>
@@ -429,14 +521,32 @@ export default function HavenJournal() {
                   </span>
 
                   <div className="haven-journal-actions-cluster">
-                    <button
-                      type="button"
-                      className="haven-journal-add-btn"
-                      onClick={handleOpenNewEntry}
-                    >
-                      <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>+</span>
-                      <span>New Entry</span>
-                    </button>
+                    {ageStatus.isAgedOut ? (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          padding: '10px 14px',
+                          borderRadius: '10px',
+                          border: '1.5px solid var(--tw-border)',
+                          background: 'var(--tw-surface-subtle, #f4f4f5)',
+                          color: 'var(--tw-text-secondary)',
+                          fontSize: '0.82rem',
+                          fontWeight: 700,
+                        }}
+                      >
+                        Read-Only Mode
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="haven-journal-add-btn"
+                        onClick={handleOpenNewEntry}
+                      >
+                        <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>+</span>
+                        <span>New Entry</span>
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -531,13 +641,15 @@ export default function HavenJournal() {
                       All Entries
                     </button>
 
-                    <button
-                      type="button"
-                      className="haven-journal-secondary-btn"
-                      onClick={handleStartEdit}
-                    >
-                      ✏️ Edit
-                    </button>
+                    {!ageStatus.isAgedOut && (
+                      <button
+                        type="button"
+                        className="haven-journal-secondary-btn"
+                        onClick={handleStartEdit}
+                      >
+                        ✏️ Edit
+                      </button>
+                    )}
 
                     <button
                       type="button"

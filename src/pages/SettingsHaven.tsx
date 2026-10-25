@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
+import TeenLayout from '../layouts/TeenLayout';
 
 function SettingsHaven() {
   const navigate = useNavigate();
@@ -70,17 +71,32 @@ function SettingsHaven() {
   };
 
   return (
-    <main className="settings-page">
+    <TeenLayout>
+      <main className="settings-page">
       <div className="settings-shell">
 
         {/* HEADER */}
         <header className="settings-header">
           <button
             type="button"
+            className="teen-back-btn"
             aria-label="Go back"
+            title="Go back"
             onClick={handleBack}
           >
-            ←
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
           </button>
 
           <span>PRIVACY</span>
@@ -281,6 +297,7 @@ function SettingsHaven() {
 
       </div>
     </main>
+    </TeenLayout>
   );
 }
 

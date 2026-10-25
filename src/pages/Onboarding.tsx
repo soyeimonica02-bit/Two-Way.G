@@ -4,33 +4,29 @@ import PaletteSelector from '../components/PaletteSelector';
 import {
   getSelectedPaletteId,
   setSelectedPalette,
+  getParentAccentId,
+  setParentAccentId,
+  PARENT_ACCENTS,
 } from '../utils/themePalettes';
+import { useTheme } from '../context/useTheme';
 import {
   normalizeTwoWayId,
   isValidTwoWayIdFormat,
   registerAccountInDirectory,
+  generateSixDigitId,
 } from '../utils/circleStorage';
 
-type Role =
-  | 'teen'
-  | 'parent'
-  | 'partner'
-  | 'spouse'
-  | 'sibling'
-  | 'counselor';
+type Role = 'teen' | 'parent';
 
 const roleNames: Record<Role, string> = {
   teen: 'Teen',
   parent: 'Parent',
-  partner: 'Partner',
-  spouse: 'Spouse',
-  sibling: 'Sibling',
-  counselor: 'Counselor',
 };
 
 export default function Onboarding() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { setPalette, setParentAccentId: setContextParentAccentId } = useTheme();
 
   const registeredRole = localStorage.getItem(
     'twoway_registered_role',
@@ -49,7 +45,7 @@ export default function Onboarding() {
   );
 
   const [goal, setGoal] = useState(
-    localStorage.getItem('twoway_profile_goal') || '',
+    localStorage.getItem('twoway_profile_goal') || 'Expressing myself',
   );
 
   // Profile picture: load from existing user profile storage if already selected, optional
@@ -60,7 +56,7 @@ export default function Onboarding() {
   const [isProcessingImage, setIsProcessingImage] = useState(false);
 
   const [selectedPaletteId, setPaletteId] = useState<string | null>(
-    () => getSelectedPaletteId(),
+    () => (role === 'parent' ? (getParentAccentId() || 'slate') : (getSelectedPaletteId() || 'palette-01')),
   );
 
   const roleName = useMemo(() => {
@@ -140,7 +136,6 @@ export default function Onboarding() {
       localStorage.setItem('twoway_profile_avatar', avatarImage);
     }
 
-    // Proceed to appearance step
     setStep('appearance');
   };
 
@@ -154,11 +149,10 @@ export default function Onboarding() {
       return;
     }
 
-    // Ensure user has a canonical Two-Way ID
+    // Ensure user has a canonical 6-digit Two-Way ID
     let userId = localStorage.getItem('twoway_user_id');
     if (!userId || !isValidTwoWayIdFormat(normalizeTwoWayId(userId))) {
-      const randomDigits = Math.floor(1000 + Math.random() * 9000).toString();
-      userId = `TW-${randomDigits}`;
+      userId = generateSixDigitId();
       localStorage.setItem('twoway_user_id', userId);
     } else {
       userId = normalizeTwoWayId(userId);
@@ -174,8 +168,14 @@ export default function Onboarding() {
     });
 
     localStorage.setItem('twoway_registered_role', role);
-    localStorage.setItem('twoway_selected_palette', selectedPaletteId);
-    setSelectedPalette(selectedPaletteId);
+    if (role === 'parent') {
+      setParentAccentId(selectedPaletteId);
+      setContextParentAccentId(selectedPaletteId);
+    } else {
+      localStorage.setItem('twoway_selected_palette', selectedPaletteId);
+      setSelectedPalette(selectedPaletteId);
+      setPalette(selectedPaletteId);
+    }
     localStorage.setItem('twoway_onboarding_complete', 'true');
 
     navigate(`/app/${role}`);
@@ -187,7 +187,7 @@ export default function Onboarding() {
         <div className="tw-container">
           <section
             style={{
-              minHeight: '100vh',
+              minHeight: '80vh',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -196,19 +196,17 @@ export default function Onboarding() {
             }}
           >
             <div>
-              <h1>Let's get you set up.</h1>
-
-              <p className="text-secondary">
+              <h1 style={{ fontSize: '1.5rem', marginBottom: '8px' }}>
+                No role selected
+              </h1>
+              <p className="text-secondary" style={{ fontSize: '0.88rem' }}>
                 Choose your role before continuing.
               </p>
-
               <button
                 type="button"
                 className="tw-button tw-button-primary"
                 onClick={() => navigate('/roles')}
-                style={{
-                  marginTop: '20px',
-                }}
+                style={{ marginTop: '16px' }}
               >
                 Choose a role
               </button>
@@ -219,7 +217,7 @@ export default function Onboarding() {
     );
   }
 
-  // STEP 2: APPEARANCE SELECTION
+  // STEP 2: APPEARANCE SELECTION (COMPACT & RESPONSIVE)
   if (step === 'appearance') {
     return (
       <main
@@ -227,45 +225,46 @@ export default function Onboarding() {
         style={{
           background: 'var(--tw-background, #f8f8f5)',
           minHeight: '100vh',
-          paddingBottom: '80px',
+          paddingBottom: '50px',
         }}
       >
         <div
           className="tw-container"
-          style={{ maxWidth: '960px', margin: '0 auto', padding: '0 24px' }}
+          style={{ maxWidth: '840px', margin: '0 auto', padding: '16px 20px' }}
         >
-          {/* TOP BAR WITH ARROW-ONLY BACK BUTTON */}
+          {/* COMPACT TOP BAR WITH ACCESSIBLE ARROW-ONLY BACK BUTTON */}
           <header
             style={{
-              minHeight: '70px',
+              minHeight: '52px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              borderBottom: '2.5px solid var(--tw-border)',
-              marginBottom: '36px',
+              borderBottom: '2px solid var(--tw-border)',
+              marginBottom: '20px',
             }}
           >
             <button
               type="button"
               aria-label="Go back"
+              title="Go back"
               onClick={() => setStep('details')}
+              className="teen-back-btn"
               style={{
-                width: '44px',
-                height: '44px',
+                width: '38px',
+                height: '38px',
                 display: 'grid',
                 placeItems: 'center',
                 background: 'var(--tw-surface)',
-                border: '2.5px solid var(--tw-border)',
-                borderRadius: '12px',
+                border: '2px solid var(--tw-border)',
+                borderRadius: '8px',
                 color: 'var(--tw-text)',
-                fontSize: '1.25rem',
-                fontWeight: 800,
                 cursor: 'pointer',
-                boxShadow: '2.5px 2.5px 0px var(--tw-border)',
-                transition: 'transform 120ms ease, box-shadow 120ms ease',
+                boxShadow: '1.5px 1.5px 0px var(--tw-border)',
               }}
             >
-              ←
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
             </button>
 
             <span
@@ -277,26 +276,90 @@ export default function Onboarding() {
                 color: 'var(--tw-primary)',
               }}
             >
-              STEP 2 OF 2 · APPEARANCE
+              STEP 2 OF 2 · PALETTE
             </span>
 
-            <div style={{ width: '44px' }} />
+            <div style={{ width: '38px' }} />
           </header>
 
-          <PaletteSelector
-            initialSelectedId={selectedPaletteId}
-            onPaletteSelect={(id) => setPaletteId(id)}
-          />
+          {role === 'parent' ? (
+            <div style={{ background: '#FFFFFF', border: '2px solid #000000', borderRadius: '14px', padding: '24px', boxShadow: '4px 4px 0px #000000' }}>
+              <h2 style={{ margin: '0 0 6px', fontSize: '1.25rem', fontWeight: 850, color: '#000000' }}>
+                Choose Your Parent Accent
+              </h2>
+              <p style={{ margin: '0 0 20px', fontSize: '0.88rem', color: '#666666' }}>
+                Select an accent highlight for your monochromatic Parent interface. You can change this at any time in Settings.
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+                {PARENT_ACCENTS.map((acc) => {
+                  const isSelected = selectedPaletteId === acc.id;
+                  return (
+                    <button
+                      key={acc.id}
+                      type="button"
+                      onClick={() => setPaletteId(acc.id)}
+                      style={{
+                        padding: '14px 16px',
+                        borderRadius: '10px',
+                        border: isSelected ? '2.5px solid #000000' : '1.5px solid #E5E5E5',
+                        background: isSelected ? '#F8F8F9' : '#FFFFFF',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '12px',
+                        textAlign: 'left',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span
+                          style={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            background: acc.accent,
+                            display: 'inline-block',
+                            border: '2px solid #000000',
+                          }}
+                        />
+                        <div>
+                          <strong style={{ display: 'block', fontSize: '0.88rem', color: '#000000' }}>
+                            {acc.name}
+                          </strong>
+                          <span style={{ fontSize: '0.74rem', color: '#666666' }}>
+                            {acc.colorName} Highlight
+                          </span>
+                        </div>
+                      </div>
+
+                      {isSelected ? (
+                        <span style={{ fontSize: '0.65rem', fontWeight: 850, textTransform: 'uppercase', color: acc.accent, background: acc.accentSoft, padding: '3px 7px', borderRadius: '4px', border: `1px solid ${acc.accent}` }}>
+                          Selected
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '0.75rem', color: '#666666' }}>Select</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <PaletteSelector
+              initialSelectedId={selectedPaletteId}
+              onPaletteSelect={(id) => setPaletteId(id)}
+            />
+          )}
 
           <div
             style={{
-              marginTop: '36px',
-              paddingTop: '24px',
-              borderTop: '2.5px solid var(--tw-border)',
+              marginTop: '24px',
+              paddingTop: '18px',
+              borderTop: '2px solid var(--tw-border)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: '12px',
+              gap: '10px',
             }}
           >
             <button
@@ -306,17 +369,17 @@ export default function Onboarding() {
               onClick={handleFinishOnboarding}
               style={{
                 width: '100%',
-                maxWidth: '420px',
-                minHeight: '52px',
+                maxWidth: '380px',
+                minHeight: '48px',
                 background: selectedPaletteId ? 'var(--tw-primary)' : 'var(--tw-surface-soft)',
                 color: selectedPaletteId ? 'var(--tw-primary-text, #ffffff)' : 'var(--tw-text-muted)',
-                border: '2.5px solid var(--tw-border)',
-                borderRadius: '14px',
-                fontWeight: 900,
-                fontSize: '0.88rem',
-                letterSpacing: '0.06em',
+                border: '2px solid var(--tw-border)',
+                borderRadius: '10px',
+                fontWeight: 850,
+                fontSize: '0.86rem',
+                letterSpacing: '0.04em',
                 textTransform: 'uppercase',
-                boxShadow: selectedPaletteId ? '4px 4px 0px var(--tw-border)' : 'none',
+                boxShadow: selectedPaletteId ? '3px 3px 0px var(--tw-border)' : 'none',
                 cursor: selectedPaletteId ? 'pointer' : 'not-allowed',
               }}
             >
@@ -328,7 +391,7 @@ export default function Onboarding() {
             <p
               style={{
                 margin: 0,
-                fontSize: '0.75rem',
+                fontSize: '0.72rem',
                 color: 'var(--tw-text-secondary)',
               }}
             >
@@ -340,7 +403,7 @@ export default function Onboarding() {
     );
   }
 
-  // STEP 1: BASIC ONBOARDING DETAILS
+  // STEP 1: COMPACT ONBOARDING DETAILS
   return (
     <main className="tw-page">
       <div className="tw-container">
@@ -351,101 +414,79 @@ export default function Onboarding() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '40px 24px',
+            padding: '24px 16px',
           }}
         >
           <div
             style={{
               width: '100%',
-              maxWidth: '520px',
+              maxWidth: '460px',
+              background: 'var(--tw-surface)',
+              border: '2px solid var(--tw-border)',
+              borderRadius: '16px',
+              padding: '24px 22px',
+              boxShadow: '4px 4px 0px var(--tw-border)',
             }}
           >
-            <button
-              type="button"
-              aria-label="Go back"
-              onClick={() => navigate('/roles')}
-              style={{
-                border: 'none',
-                background: 'transparent',
-                padding: 0,
-                marginBottom: '20px',
-                cursor: 'pointer',
-                fontSize: '0.9rem',
-                fontWeight: 700,
-                color: 'var(--tw-text-secondary)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              ← Back
-            </button>
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                marginBottom: '32px',
-              }}
-            >
-              <img
-                src="/favicon.svg"
-                alt="Two-Way"
+            {/* COMPACT TOP NAVIGATION BAR */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <button
+                type="button"
+                aria-label="Go back"
+                title="Go back"
+                onClick={() => navigate('/roles')}
+                className="teen-back-btn"
                 style={{
-                  width: '82px',
-                  height: '82px',
-                  objectFit: 'contain',
-                  marginBottom: '4px',
-                }}
-              />
-
-              <strong
-                style={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: '1.7rem',
-                  letterSpacing: '-0.04em',
+                  border: '1.5px solid var(--tw-border)',
+                  background: 'var(--tw-background)',
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '6px',
+                  display: 'grid',
+                  placeItems: 'center',
+                  cursor: 'pointer',
+                  color: 'var(--tw-text)',
                 }}
               >
-                Two-Way
-              </strong>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+              </button>
+
+              <span
+                style={{
+                  fontSize: '0.65rem',
+                  fontWeight: 850,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  color: 'var(--tw-primary)',
+                  background: 'var(--tw-primary-soft)',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  border: '1px solid var(--tw-border)',
+                }}
+              >
+                {roleName} Onboarding
+              </span>
+
+              <div style={{ width: '34px' }} />
             </div>
 
-            <div
-              style={{
-                textAlign: 'center',
-                marginBottom: '28px',
-              }}
-            >
-              <p
-                style={{
-                  margin: '0 0 8px',
-                  color: 'var(--tw-primary)',
-                  fontSize: '0.85rem',
-                  fontWeight: 700,
-                }}
-              >
-                {roleName}
-              </p>
-
+            {/* BRAND HEADER */}
+            <div style={{ textAlign: 'center', marginBottom: '16px' }}>
               <h1
                 style={{
-                  margin: '0 0 12px',
-                  fontSize: 'clamp(1.7rem, 4vw, 2.2rem)',
+                  margin: '0 0 4px',
+                  fontSize: '1.35rem',
+                  fontWeight: 900,
                   lineHeight: 1.2,
+                  color: 'var(--tw-text)',
                 }}
               >
                 Make Two-Way yours.
               </h1>
-
-              <p
-                className="text-secondary"
-                style={{
-                  margin: 0,
-                  lineHeight: 1.65,
-                }}
-              >
-                Just a couple of things before you begin.
-                These details help personalize your experience.
+              <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--tw-text-secondary)' }}>
+                Set your profile name and focus goal before starting.
               </p>
             </div>
 
@@ -454,10 +495,10 @@ export default function Onboarding() {
               style={{
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '20px',
+                gap: '14px',
               }}
             >
-              {/* Real hidden file input */}
+              {/* HIDDEN FILE INPUT */}
               <input
                 ref={fileInputRef}
                 type="file"
@@ -467,12 +508,21 @@ export default function Onboarding() {
                 aria-label="Upload profile picture"
               />
 
-              {/* Circular profile-picture area with plus (+) button */}
-              <div className="onboarding-avatar-wrapper">
+              {/* COMPACT AVATAR ROW */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '14px',
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  border: '1.5px solid var(--tw-border)',
+                  background: 'var(--tw-surface-soft)',
+                }}
+              >
                 <div
-                  className="onboarding-avatar"
                   onClick={handlePhotoClick}
-                  title={avatarImage ? 'Click to replace photo' : 'Upload profile picture (optional)'}
+                  title={avatarImage ? 'Click to replace photo' : 'Upload photo (optional)'}
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => {
@@ -481,148 +531,116 @@ export default function Onboarding() {
                       handlePhotoClick();
                     }
                   }}
-                  aria-label={avatarImage ? 'Change profile picture' : 'Upload profile picture (optional)'}
+                  aria-label={avatarImage ? 'Change profile photo' : 'Upload profile photo (optional)'}
+                  style={{
+                    width: '52px',
+                    height: '52px',
+                    borderRadius: '50%',
+                    background: 'var(--tw-surface)',
+                    border: '2px solid var(--tw-border)',
+                    display: 'grid',
+                    placeItems: 'center',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    flexShrink: 0,
+                  }}
                 >
                   {avatarImage ? (
                     <img
                       src={avatarImage}
-                      alt="Profile preview"
-                      className="onboarding-avatar-img"
+                      alt="Avatar preview"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
                   ) : (
-                    <span>
+                    <span style={{ fontSize: '1.25rem', fontWeight: 800 }}>
                       {(name.trim().charAt(0) || '👤').toUpperCase()}
                     </span>
                   )}
-
-                  <button
-                    type="button"
-                    className="onboarding-avatar-plus"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handlePhotoClick();
-                    }}
-                    aria-label={avatarImage ? 'Change picture' : 'Add profile picture'}
-                    title={avatarImage ? 'Change picture' : 'Add profile picture'}
-                    disabled={isProcessingImage}
-                  >
-                    {isProcessingImage ? '…' : '+'}
-                  </button>
                 </div>
 
-                <span
-                  style={{
-                    fontSize: '0.74rem',
-                    fontWeight: 700,
-                    color: 'var(--tw-text-muted)',
-                    marginTop: '8px',
-                    letterSpacing: '0.04em',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  {avatarImage ? 'Photo selected · Tap + to change' : 'Profile photo (optional)'}
-                </span>
-
-                {avatarError && (
-                  <p
-                    role="alert"
+                <div style={{ flex: 1 }}>
+                  <button
+                    type="button"
+                    onClick={handlePhotoClick}
+                    disabled={isProcessingImage}
                     style={{
-                      margin: '6px 0 0',
+                      background: 'var(--tw-surface)',
+                      border: '1.5px solid var(--tw-border)',
+                      borderRadius: '6px',
+                      padding: '4px 10px',
                       fontSize: '0.74rem',
-                      fontWeight: 700,
-                      color: 'var(--tw-accent-red, #dc2626)',
-                      textAlign: 'center',
-                      lineHeight: 1.35,
+                      fontWeight: 800,
+                      color: 'var(--tw-text)',
+                      cursor: isProcessingImage ? 'not-allowed' : 'pointer',
                     }}
                   >
-                    {avatarError}
-                  </p>
-                )}
+                    {isProcessingImage ? 'Processing…' : avatarImage ? 'Change Photo' : '+ Add Photo (Optional)'}
+                  </button>
+                </div>
               </div>
 
-              <label
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px',
-                }}
-              >
-                <span
+              {avatarError && (
+                <p
+                  role="alert"
                   style={{
-                    fontSize: '0.9rem',
-                    fontWeight: 650,
+                    margin: 0,
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    color: '#dc2626',
+                    lineHeight: 1.35,
                   }}
                 >
+                  {avatarError}
+                </p>
+              )}
+
+              {/* NAME INPUT */}
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 750, color: 'var(--tw-text)' }}>
                   What should we call you?
                 </span>
-
                 <input
                   className="tw-input"
                   type="text"
                   value={name}
-                  onChange={(event) =>
-                    setName(event.target.value)
-                  }
-                  placeholder="Your name"
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder="Your display name"
                   required
+                  style={{
+                    padding: '9px 12px',
+                    borderRadius: '8px',
+                    border: '1.5px solid var(--tw-border)',
+                    fontSize: '0.88rem',
+                  }}
                 />
               </label>
 
-              <fieldset
-                style={{
-                  margin: 0,
-                  padding: 0,
-                  border: 0,
-                }}
-              >
+              {/* COMPACT GOAL CHIPS */}
+              <fieldset style={{ margin: 0, padding: 0, border: 0 }}>
                 <legend
                   style={{
-                    marginBottom: '10px',
-                    fontSize: '0.9rem',
-                    fontWeight: 650,
+                    marginBottom: '6px',
+                    fontSize: '0.82rem',
+                    fontWeight: 750,
+                    color: 'var(--tw-text)',
                   }}
                 >
                   What would you like Two-Way to help with?
                 </legend>
 
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns:
-                      'repeat(auto-fit, minmax(160px, 1fr))',
-                    gap: '10px',
-                  }}
-                >
+                <div className="compact-chips-grid">
                   {[
                     'Expressing myself',
                     'Understanding others',
-                    'Having difficult conversations',
-                    'Building better relationships',
+                    'Tough conversations',
+                    'Better relationships',
                   ].map((option) => (
                     <button
                       key={option}
                       type="button"
                       onClick={() => setGoal(option)}
-                      style={{
-                        minHeight: '58px',
-                        padding: '12px 14px',
-                        textAlign: 'left',
-                        borderRadius: 'var(--radius-md)',
-                        border:
-                          goal === option
-                            ? '2px solid var(--tw-primary)'
-                            : '1px solid var(--tw-border)',
-                        background:
-                          goal === option
-                            ? 'var(--tw-primary-soft)'
-                            : 'var(--tw-surface)',
-                        color: 'var(--tw-text)',
-                        fontSize: '0.85rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        transition:
-                          'border-color 180ms ease, background 180ms ease',
-                      }}
+                      className={`compact-chip ${goal === option ? 'is-active' : ''}`}
                     >
                       {option}
                     </button>
@@ -630,31 +648,58 @@ export default function Onboarding() {
                 </div>
               </fieldset>
 
+              {/* COLLAPSIBLE ADVANCED PREFERENCES */}
+              <details
+                style={{
+                  border: '1px solid var(--tw-border)',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  background: 'var(--tw-surface-subtle)',
+                  fontSize: '0.78rem',
+                }}
+              >
+                <summary style={{ cursor: 'pointer', fontWeight: 700, color: 'var(--tw-text)' }}>
+                  Advanced preferences (optional)
+                </summary>
+                <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input type="checkbox" defaultChecked />
+                    <span>Enable notification badges for circle connection requests</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input type="checkbox" defaultChecked />
+                    <span>Include gentle reflection prompts before sending messages</span>
+                  </label>
+                </div>
+              </details>
+
               <button
                 type="submit"
                 className="tw-button tw-button-primary"
                 style={{
                   width: '100%',
-                  minHeight: '52px',
+                  minHeight: '46px',
+                  fontWeight: 850,
+                  fontSize: '0.86rem',
+                  borderRadius: '10px',
                   marginTop: '4px',
                 }}
               >
-                Continue
+                Continue to Appearance →
               </button>
             </form>
 
             <p
               className="text-secondary"
               style={{
-                margin: '20px auto 0',
-                maxWidth: '360px',
+                margin: '14px auto 0',
+                maxWidth: '340px',
                 textAlign: 'center',
-                fontSize: '0.75rem',
-                lineHeight: 1.55,
+                fontSize: '0.7rem',
+                lineHeight: 1.45,
               }}
             >
-              Your role is part of your account identity and
-              cannot be changed after registration.
+              Account roles preserve private boundaries between parents and teens.
             </p>
           </div>
         </section>

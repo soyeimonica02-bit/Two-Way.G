@@ -26,37 +26,148 @@ export const STORAGE_KEY_CIRCLE_CONNECTIONS = 'twoway_circle_connections';
 export const STORAGE_KEY_CIRCLE_REQUESTS = 'twoway_circle_requests';
 export const STORAGE_KEY_ACCOUNTS_DIRECTORY = 'twoway_registered_accounts_directory';
 
+/**
+ * Generate a cryptographically secure 6-digit Two-Way ID (e.g. TW-004821).
+ */
+export function generateSixDigitId(): string {
+  try {
+    const array = new Uint32Array(1);
+    if (typeof window !== 'undefined' && window.crypto && window.crypto.getRandomValues) {
+      window.crypto.getRandomValues(array);
+      const num = array[0] % 1000000;
+      return `TW-${num.toString().padStart(6, '0')}`;
+    }
+  } catch {
+    // fallback
+  }
+  const rand = Math.floor(Math.random() * 1000000);
+  return `TW-${rand.toString().padStart(6, '0')}`;
+}
+
 export function generateCircleRecordId(prefix: string): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 }
 
 /**
- * Clean & normalize a Two-Way ID to canonical format.
- * Canonical format is always "TW-" followed by numeric digits (e.g. "TW-4920", "TW-0142").
+ * Clean & normalize a Two-Way ID to canonical 6-digit format (TW- followed by exactly 6 digits).
  * Preserves leading zeroes.
  */
 export function normalizeTwoWayId(id: string): string {
+  if (!id) return '';
   const trimmed = id.trim().toUpperCase();
-  // Strip any accidental leading "TW-" or "TW" prefix to extract the raw digits
   const digitsOnly = trimmed.replace(/^TW-?/, '').replace(/[^0-9]/g, '');
-  return digitsOnly ? `TW-${digitsOnly}` : '';
+  if (!digitsOnly) return '';
+  const padded = digitsOnly.padStart(6, '0').slice(-6);
+  return `TW-${padded}`;
 }
 
 /**
  * Validate Two-Way ID format.
- * Two-Way IDs must have a non-removable "TW-" prefix followed by 3 to 8 numeric digits.
+ * Two-Way IDs must have a non-removable "TW-" prefix followed by exactly 6 numeric digits.
  * Leading zeros are explicitly preserved.
  */
 export function isValidTwoWayIdFormat(id: string): boolean {
+  if (!id) return false;
   const clean = id.trim().toUpperCase();
-  // Match TW- followed by 3 to 8 decimal digits
-  return /^TW-[0-9]{3,8}$/.test(clean);
+  return /^TW-[0-9]{6}$/.test(clean);
 }
 
 /**
- * Get current user's Two-Way ID in canonical format.
+ * Run migration of existing 4-digit or legacy IDs to 6-digit canonical IDs across all storage keys.
+ * Idempotent and repeatable.
+ */
+export function runSixDigitIdMigration(): void {
+  try {
+    if (typeof window === 'undefined') return;
+    const migratedFlag = localStorage.getItem('twoway_id_migrated_v2');
+    if (migratedFlag === 'true') {
+      // Already migrated once; never re-run or change IDs on startup
+      return;
+    }
+
+    // 1. User ID migration
+    const userId = localStorage.getItem('twoway_user_id');
+    if (userId) {
+      const normalized = normalizeTwoWayId(userId);
+      if (normalized && normalized !== userId) {
+        localStorage.setItem('twoway_user_id', normalized);
+      } else if (!isValidTwoWayIdFormat(userId)) {
+        const newId = generateSixDigitId();
+        localStorage.setItem('twoway_user_id', newId);
+      }
+    } else {
+      localStorage.setItem('twoway_user_id', generateSixDigitId());
+    }
+
+    // Ensure internal immutable ID exists
+    if (!localStorage.getItem('twoway_internal_id')) {
+      localStorage.setItem('twoway_internal_id', `internal_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`);
+    }
+
+    // 2. Accounts Directory migration
+    const rawDir = localStorage.getItem(STORAGE_KEY_ACCOUNTS_DIRECTORY);
+    if (rawDir) {
+      try {
+        const dir = JSON.parse(rawDir);
+        const newDir: Record<string, RegisteredAccountLookupResult> = {};
+        for (const [key, val] of Object.entries(dir)) {
+          const normKey = normalizeTwoWayId(key);
+          const item = val as RegisteredAccountLookupResult;
+          const normId = normalizeTwoWayId(item.twoWayId || key);
+          newDir[normKey] = {
+            ...item,
+            twoWayId: normId,
+          };
+        }
+        localStorage.setItem(STORAGE_KEY_ACCOUNTS_DIRECTORY, JSON.stringify(newDir));
+      } catch (e) {
+        console.error('Error migrating accounts directory:', e);
+      }
+    }
+
+    // 3. Circle Connections migration
+    const rawConn = localStorage.getItem(STORAGE_KEY_CIRCLE_CONNECTIONS);
+    if (rawConn) {
+      try {
+        const conns: CircleConnection[] = JSON.parse(rawConn);
+        const migrated = conns.map((c) => ({
+          ...c,
+          twoWayId: normalizeTwoWayId(c.twoWayId),
+        }));
+        localStorage.setItem(STORAGE_KEY_CIRCLE_CONNECTIONS, JSON.stringify(migrated));
+      } catch (e) {
+        console.error('Error migrating circle connections:', e);
+      }
+    }
+
+    // 4. Connection Requests migration
+    const rawReq = localStorage.getItem(STORAGE_KEY_CIRCLE_REQUESTS);
+    if (rawReq) {
+      try {
+        const reqs: ConnectionRequest[] = JSON.parse(rawReq);
+        const migrated = reqs.map((r) => ({
+          ...r,
+          senderTwoWayId: normalizeTwoWayId(r.senderTwoWayId),
+          recipientTwoWayId: normalizeTwoWayId(r.recipientTwoWayId),
+        }));
+        localStorage.setItem(STORAGE_KEY_CIRCLE_REQUESTS, JSON.stringify(migrated));
+      } catch (e) {
+        console.error('Error migrating connection requests:', e);
+      }
+    }
+
+    // Mark migration completed permanently
+    localStorage.setItem('twoway_id_migrated_v2', 'true');
+  } catch (err) {
+    console.error('Failed to run six-digit ID migration:', err);
+  }
+}
+
+/**
+ * Get current user's Two-Way ID in canonical 6-digit format.
  */
 export function getCurrentUserTwoWayId(): string {
+  runSixDigitIdMigration();
   const stored = localStorage.getItem('twoway_user_id');
   if (stored) {
     const normalized = normalizeTwoWayId(stored);
@@ -64,7 +175,9 @@ export function getCurrentUserTwoWayId(): string {
       return normalized;
     }
   }
-  return 'TW-4920';
+  const generated = generateSixDigitId();
+  localStorage.setItem('twoway_user_id', generated);
+  return generated;
 }
 
 /**

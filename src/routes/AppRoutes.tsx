@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import Nova from '../pages/Nova';
 
 import Landing from '../pages/Landing';
 import RoleSelection from '../pages/RoleSelection';
@@ -9,11 +10,7 @@ import Onboarding from '../pages/Onboarding';
 
 import TeenDashboard from '../pages/TeenDashboard';
 import ParentDashboard from '../pages/ParentDashboard';
-import SiblingDashboard from '../pages/SiblingDashboard';
-import PartnerDashboard from '../pages/PartnerDashboard';
-import SpouseDashboard from '../pages/SpouseDashboard';
-import CounselorDashboard from '../pages/CounselorDashboard';
-import Nova from '../pages/Nova';
+import Perspective from '../pages/Perspective';
 import EmotionalCalendar from '../pages/EmotionalCalendar';
 import MoodReflection from '../pages/MoodReflection';
 
@@ -25,6 +22,7 @@ import AddConnectionId from '../pages/AddConnectionId';
 
 import Conversations from '../pages/Conversations';
 import ConversationView from '../pages/ConversationView';
+import GroupConversationView from '../pages/GroupConversationView';
 
 import Profile from '../pages/Profile';
 import Settings from '../pages/Settings';
@@ -36,6 +34,8 @@ import SettingsAppearance from '../pages/SettingsAppearance';
 import SettingsHelp from '../pages/SettingsHelp';
 import SettingsAbout from '../pages/SettingsAbout';
 
+import { evaluateTeenEligibility } from '../utils/ageVerification';
+
 function RoleGuard({
   requiredRole,
   children,
@@ -46,9 +46,29 @@ function RoleGuard({
   const registeredRole =
     localStorage.getItem('twoway_registered_role') ||
     localStorage.getItem('twoway_selected_role');
+
   if (registeredRole && registeredRole !== requiredRole) {
     return <Navigate to={`/app/${registeredRole}`} replace />;
   }
+
+  // Age Gate protection for Teen experience
+  if (requiredRole === 'teen') {
+    const registeredDob =
+      localStorage.getItem('twoway_registered_dob') ||
+      localStorage.getItem('twoway_signup_dob');
+
+    // Missing or unverified DOB: must verify before granting teen access
+    if (!registeredDob) {
+      return <Navigate to="/auth/birthday?returnTo=/app/teen" replace />;
+    }
+
+    const eligibility = evaluateTeenEligibility(registeredDob);
+    if (eligibility.eligibilityStatus === 'underage') {
+      // Under 13 must never access teen experience
+      return <Navigate to="/roles" replace />;
+    }
+  }
+
   return children;
 }
 
@@ -117,66 +137,56 @@ export default function AppRoutes() {
 
 
       {/* =========================================
-          TEEN HOME
+          TEEN EXPERIENCE (PROTECTED)
       ========================================= */}
 
       <Route
         path="/app/teen"
-        element={<TeenDashboard />}
-      />
-
-
-      {/* =========================================
-          NOVA
-      ========================================= */}
-
-      <Route
-        path="/app/teen/nova"
-        element={<Nova />}
-      />
-
-
-      {/* =========================================
-          EMOTIONAL CALENDAR
-      ========================================= */}
-
-      <Route
-        path="/app/teen/emotional-calendar"
-        element={<EmotionalCalendar />}
-      />
-
-      {/* Legacy URL */}
-      <Route
-        path="/emotional-calendar"
-        element={<EmotionalCalendar />}
-      />
-
-
-      {/* =========================================
-          MOOD REFLECTION
-      ========================================= */}
-
-      <Route
-        path="/app/teen/mood-reflection"
-        element={<MoodReflection />}
-      />
-
-      {/* Legacy mood history redirect */}
-      <Route
-        path="/app/teen/mood-history"
         element={
-          <Navigate
-            to="/app/teen/mood-reflection"
-            replace
-          />
+          <RoleGuard requiredRole="teen">
+            <TeenDashboard />
+          </RoleGuard>
         }
       />
 
+      <Route
+        path="/app/teen/nova"
+        element={
+          <RoleGuard requiredRole="teen">
+            <Nova />
+          </RoleGuard>
+        }
+      />
 
-      {/* =========================================
-          MY HAVEN
-      ========================================= */}
+      <Route
+        path="/app/teen/emotional-calendar"
+        element={
+          <RoleGuard requiredRole="teen">
+            <EmotionalCalendar />
+          </RoleGuard>
+        }
+      />
 
+      <Route
+        path="/emotional-calendar"
+        element={<Navigate to="/app/teen/emotional-calendar" replace />}
+      />
+
+      <Route
+        path="/app/teen/mood-reflection"
+        element={
+          <RoleGuard requiredRole="teen">
+            <MoodReflection />
+          </RoleGuard>
+        }
+      />
+
+      <Route
+        path="/app/teen/mood-history"
+        element={<Navigate to="/app/teen/mood-reflection" replace />}
+      />
+
+      {/* My Haven - Strictly Teen Only */}
       <Route
         path="/app/teen/haven"
         element={
@@ -186,7 +196,6 @@ export default function AppRoutes() {
         }
       />
 
-      {/* My Haven Journal */}
       <Route
         path="/app/teen/haven/journal"
         element={
@@ -196,7 +205,6 @@ export default function AppRoutes() {
         }
       />
 
-      {/* Haven thoughts route */}
       <Route
         path="/app/teen/haven/thoughts"
         element={
@@ -206,70 +214,97 @@ export default function AppRoutes() {
         }
       />
 
-
-      {/* =========================================
-          MY CIRCLE
-      ========================================= */}
-
+      {/* Teen My Circle */}
       <Route
         path="/app/teen/circle"
-        element={<MyCircle />}
+        element={
+          <RoleGuard requiredRole="teen">
+            <MyCircle />
+          </RoleGuard>
+        }
       />
 
       <Route
         path="/app/teen/circle/add"
-        element={<AddConnectionId />}
+        element={
+          <RoleGuard requiredRole="teen">
+            <AddConnectionId />
+          </RoleGuard>
+        }
       />
 
       <Route
         path="/app/teen/circle/add-id"
-        element={<AddConnectionId />}
+        element={
+          <RoleGuard requiredRole="teen">
+            <AddConnectionId />
+          </RoleGuard>
+        }
       />
 
-
-      {/* =========================================
-          CLARITY / CONVERSATIONS
-      ========================================= */}
-
+      {/* Teen Clarity / Conversations */}
       <Route
         path="/app/teen/conversations"
-        element={<Conversations />}
+        element={
+          <RoleGuard requiredRole="teen">
+            <Conversations />
+          </RoleGuard>
+        }
       />
 
       <Route
         path="/app/teen/clarity"
-        element={<Conversations />}
+        element={
+          <RoleGuard requiredRole="teen">
+            <Conversations />
+          </RoleGuard>
+        }
       />
 
-      {/* Single conversation route */}
       <Route
         path="/app/teen/conversations/:conversationId"
-        element={<ConversationView />}
+        element={
+          <RoleGuard requiredRole="teen">
+            <ConversationView />
+          </RoleGuard>
+        }
       />
 
       <Route
         path="/app/teen/clarity/:conversationId"
-        element={<ConversationView />}
+        element={
+          <RoleGuard requiredRole="teen">
+            <ConversationView />
+          </RoleGuard>
+        }
       />
-
-
-      {/* =========================================
-          PROFILE
-      ========================================= */}
 
       <Route
-        path="/app/teen/profile"
-        element={<Profile />}
+        path="/app/teen/groups/:groupId"
+        element={
+          <RoleGuard requiredRole="teen">
+            <GroupConversationView />
+          </RoleGuard>
+        }
       />
 
-
-      {/* =========================================
-          SETTINGS & SUBPAGES
-      ========================================= */}
+      {/* Teen Profile & Settings */}
+      <Route
+        path="/app/teen/profile"
+        element={
+          <RoleGuard requiredRole="teen">
+            <Profile />
+          </RoleGuard>
+        }
+      />
 
       <Route
         path="/app/teen/settings"
-        element={<Settings />}
+        element={
+          <RoleGuard requiredRole="teen">
+            <Settings />
+          </RoleGuard>
+        }
       />
 
       <Route
@@ -279,42 +314,70 @@ export default function AppRoutes() {
 
       <Route
         path="/app/teen/settings/email"
-        element={<SettingsEmail />}
+        element={
+          <RoleGuard requiredRole="teen">
+            <SettingsEmail />
+          </RoleGuard>
+        }
       />
 
       <Route
         path="/app/teen/settings/privacy"
-        element={<SettingsPrivacy />}
+        element={
+          <RoleGuard requiredRole="teen">
+            <SettingsPrivacy />
+          </RoleGuard>
+        }
       />
 
       <Route
         path="/app/teen/settings/haven"
-        element={<SettingsHaven />}
+        element={
+          <RoleGuard requiredRole="teen">
+            <SettingsHaven />
+          </RoleGuard>
+        }
       />
 
       <Route
         path="/app/teen/settings/notifications"
-        element={<SettingsNotifications />}
+        element={
+          <RoleGuard requiredRole="teen">
+            <SettingsNotifications />
+          </RoleGuard>
+        }
       />
 
       <Route
         path="/app/teen/settings/appearance"
-        element={<SettingsAppearance />}
+        element={
+          <RoleGuard requiredRole="teen">
+            <SettingsAppearance />
+          </RoleGuard>
+        }
       />
 
       <Route
         path="/app/teen/settings/help"
-        element={<SettingsHelp />}
+        element={
+          <RoleGuard requiredRole="teen">
+            <SettingsHelp />
+          </RoleGuard>
+        }
       />
 
       <Route
         path="/app/teen/settings/about"
-        element={<SettingsAbout />}
+        element={
+          <RoleGuard requiredRole="teen">
+            <SettingsAbout />
+          </RoleGuard>
+        }
       />
 
 
       {/* =========================================
-          PARENT HOME
+          PARENT EXPERIENCE (PROTECTED)
       ========================================= */}
 
       <Route
@@ -326,15 +389,25 @@ export default function AppRoutes() {
         }
       />
 
-      {/* Parents do not have Clarity - redirect to Parent Dashboard */}
+      {/* Perspective - Parent Only Feature */}
+      <Route
+        path="/app/parent/perspective"
+        element={
+          <RoleGuard requiredRole="parent">
+            <Perspective />
+          </RoleGuard>
+        }
+      />
+
+      {/* Parents do not have Clarity - redirect to Parent Perspective or Dashboard */}
       <Route
         path="/app/parent/conversations"
-        element={<Navigate to="/app/parent" replace />}
+        element={<Navigate to="/app/parent/circle" replace />}
       />
 
       <Route
         path="/app/parent/clarity"
-        element={<Navigate to="/app/parent" replace />}
+        element={<Navigate to="/app/parent/perspective" replace />}
       />
 
       <Route
@@ -355,38 +428,71 @@ export default function AppRoutes() {
         }
       />
 
+      <Route
+        path="/app/parent/groups/:groupId"
+        element={
+          <RoleGuard requiredRole="parent">
+            <GroupConversationView />
+          </RoleGuard>
+        }
+      />
+
       {/* Parent My Circle */}
       <Route
         path="/app/parent/circle"
-        element={<MyCircle />}
+        element={
+          <RoleGuard requiredRole="parent">
+            <MyCircle />
+          </RoleGuard>
+        }
       />
 
       <Route
         path="/app/parent/circle/add"
-        element={<AddConnectionId />}
+        element={
+          <RoleGuard requiredRole="parent">
+            <AddConnectionId />
+          </RoleGuard>
+        }
       />
 
       <Route
         path="/app/parent/circle/add-id"
-        element={<AddConnectionId />}
+        element={
+          <RoleGuard requiredRole="parent">
+            <AddConnectionId />
+          </RoleGuard>
+        }
       />
 
       {/* Parent Nova */}
       <Route
         path="/app/parent/nova"
-        element={<Nova />}
+        element={
+          <RoleGuard requiredRole="parent">
+            <Nova />
+          </RoleGuard>
+        }
       />
 
       {/* Parent Profile */}
       <Route
         path="/app/parent/profile"
-        element={<Profile />}
+        element={
+          <RoleGuard requiredRole="parent">
+            <Profile />
+          </RoleGuard>
+        }
       />
 
       {/* Parent Settings & Subpages */}
       <Route
         path="/app/parent/settings"
-        element={<Settings />}
+        element={
+          <RoleGuard requiredRole="parent">
+            <Settings />
+          </RoleGuard>
+        }
       />
 
       <Route
@@ -396,14 +502,23 @@ export default function AppRoutes() {
 
       <Route
         path="/app/parent/settings/email"
-        element={<SettingsEmail />}
+        element={
+          <RoleGuard requiredRole="parent">
+            <SettingsEmail />
+          </RoleGuard>
+        }
       />
 
       <Route
         path="/app/parent/settings/privacy"
-        element={<SettingsPrivacy />}
+        element={
+          <RoleGuard requiredRole="parent">
+            <SettingsPrivacy />
+          </RoleGuard>
+        }
       />
 
+      {/* Parents cannot access Haven settings */}
       <Route
         path="/app/parent/settings/haven"
         element={<Navigate to="/app/parent/settings" replace />}
@@ -411,47 +526,63 @@ export default function AppRoutes() {
 
       <Route
         path="/app/parent/settings/notifications"
-        element={<SettingsNotifications />}
+        element={
+          <RoleGuard requiredRole="parent">
+            <SettingsNotifications />
+          </RoleGuard>
+        }
       />
 
       <Route
         path="/app/parent/settings/appearance"
-        element={<SettingsAppearance />}
+        element={
+          <RoleGuard requiredRole="parent">
+            <SettingsAppearance />
+          </RoleGuard>
+        }
       />
 
       <Route
         path="/app/parent/settings/help"
-        element={<SettingsHelp />}
+        element={
+          <RoleGuard requiredRole="parent">
+            <SettingsHelp />
+          </RoleGuard>
+        }
       />
 
       <Route
         path="/app/parent/settings/about"
-        element={<SettingsAbout />}
+        element={
+          <RoleGuard requiredRole="parent">
+            <SettingsAbout />
+          </RoleGuard>
+        }
       />
 
 
       {/* =========================================
-          OTHER SUPPORTED ROLES
+          OTHER UNSUPPORTED ROLES (REDIRECT TO ROLES)
       ========================================= */}
 
       <Route
         path="/app/sibling"
-        element={<SiblingDashboard />}
+        element={<Navigate to="/roles" replace />}
       />
 
       <Route
         path="/app/partner"
-        element={<PartnerDashboard />}
+        element={<Navigate to="/roles" replace />}
       />
 
       <Route
         path="/app/spouse"
-        element={<SpouseDashboard />}
+        element={<Navigate to="/roles" replace />}
       />
 
       <Route
         path="/app/counselor"
-        element={<CounselorDashboard />}
+        element={<Navigate to="/roles" replace />}
       />
 
 

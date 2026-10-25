@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import TeenLayout from '../layouts/TeenLayout';
@@ -8,9 +8,27 @@ import {
   formatUpdatedTime,
 } from '../utils/moodStorage';
 import type { MoodKey } from '../utils/moodStorage';
+import {
+  getCurrentTeenAgeStatus,
+  syncServerAgeSession,
+  AGE_OUT_BANNER_MESSAGE,
+} from '../utils/ageVerification';
 
 function TeenDashboard() {
   const navigate = useNavigate();
+  const [ageStatus, setAgeStatus] = useState(() => getCurrentTeenAgeStatus());
+
+  useEffect(() => {
+    syncServerAgeSession().then((session) => {
+      if (session) {
+        setAgeStatus((prev) => ({
+          ...prev,
+          isAgedOut: session.isAgedOut,
+          isEligibleTeen: session.canCreateContent,
+        }));
+      }
+    });
+  }, []);
   const { todayKey, todayEntry, saveEntry } = useMood();
 
   const name =
@@ -97,6 +115,30 @@ function TeenDashboard() {
             <p>
               This is your space to say what you mean, understand what you feel, and be understood.
             </p>
+
+            {ageStatus.isAgedOut && (
+              <div
+                style={{
+                  background: 'var(--tw-surface, #ffffff)',
+                  border: '2px solid var(--tw-border)',
+                  borderLeft: '5px solid #d97706',
+                  borderRadius: '12px',
+                  padding: '16px 20px',
+                  marginTop: '16px',
+                  boxShadow: '3px 3px 0 rgba(0, 0, 0, 0.06)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '1.1rem' }}>⏳</span>
+                  <strong style={{ fontSize: '0.94rem', color: 'var(--tw-text)', fontWeight: 800 }}>
+                    Account Transition Notice (Read-Only Mode)
+                  </strong>
+                </div>
+                <p style={{ margin: 0, fontSize: '0.86rem', color: 'var(--tw-text-secondary)', lineHeight: 1.55 }}>
+                  {AGE_OUT_BANNER_MESSAGE}
+                </p>
+              </div>
+            )}
           </motion.section>
 
 

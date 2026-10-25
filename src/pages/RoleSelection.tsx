@@ -5,10 +5,6 @@ import { useNavigate } from 'react-router-dom'
 type Role =
   | 'teen'
   | 'parent'
-  | 'partner'
-  | 'spouse'
-  | 'sibling'
-  | 'counselor'
 
 const roles = [
   {
@@ -22,30 +18,6 @@ const roles = [
     title: 'Parent',
     description:
       'Understand your teen better and create calmer conversations.',
-  },
-  {
-    id: 'partner' as Role,
-    title: 'Partner',
-    description:
-      'Make difficult conversations easier and build understanding together.',
-  },
-  {
-    id: 'spouse' as Role,
-    title: 'Spouse',
-    description:
-      'Create clearer communication and space for both sides.',
-  },
-  {
-    id: 'sibling' as Role,
-    title: 'Sibling',
-    description:
-      'Stay connected and make important conversations easier.',
-  },
-  {
-    id: 'counselor' as Role,
-    title: 'Counselor',
-    description:
-      'Support healthier communication while respecting privacy.',
   },
 ]
 
@@ -95,6 +67,8 @@ export default function RoleSelection() {
           >
             <button
               type="button"
+              aria-label="Go back"
+              title="Go back"
               onClick={() => navigate('/')}
               style={{
                 border: 'none',
@@ -102,10 +76,11 @@ export default function RoleSelection() {
                 padding: 0,
                 marginBottom: '28px',
                 cursor: 'pointer',
-                fontSize: '0.9rem',
+                fontSize: '1.2rem',
+                fontWeight: 700,
               }}
             >
-              ← Back
+              ←
             </button>
 
             <div style={{ marginBottom: '32px' }}>

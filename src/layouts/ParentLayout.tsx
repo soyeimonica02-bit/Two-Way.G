@@ -9,6 +9,7 @@ export default function ParentLayout({ children }: ParentLayoutProps) {
   const location = useLocation();
 
   const isHomeActive = location.pathname === '/app/parent';
+  const isPerspectiveActive = location.pathname.startsWith('/app/parent/perspective');
   const isCircleActive = location.pathname.startsWith('/app/parent/circle');
   const isNovaActive = location.pathname.startsWith('/app/parent/nova');
   const isProfileActive =
@@ -21,7 +22,7 @@ export default function ParentLayout({ children }: ParentLayoutProps) {
     <div className="parent-layout">
 
       {/* =========================================
-          TOP HEADER
+          TOP HEADER - MONOCHROMATIC
       ========================================= */}
       <header className="parent-header">
         <NavLink
@@ -36,10 +37,6 @@ export default function ParentLayout({ children }: ParentLayoutProps) {
 
           <span className="parent-brand-name">
             Two-Way
-          </span>
-
-          <span className="parent-role-badge">
-            Parent
           </span>
         </NavLink>
 
@@ -57,11 +54,10 @@ export default function ParentLayout({ children }: ParentLayoutProps) {
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
-                borderRadius: '50%',
               }}
             />
           ) : (
-            <span style={{ fontSize: '1.15rem' }} aria-hidden="true">
+            <span style={{ fontSize: '1.05rem', lineHeight: 1 }} aria-hidden="true">
               👤
             </span>
           )}
@@ -76,7 +72,7 @@ export default function ParentLayout({ children }: ParentLayoutProps) {
       </main>
 
       {/* =========================================
-          BOTTOM NAVIGATION (EXACTLY 4 TABS - NO CLARITY)
+          BOTTOM NAVIGATION - EXACTLY 5 TABS (PARENT)
       ========================================= */}
       <nav
         className="parent-nav"
@@ -88,10 +84,31 @@ export default function ParentLayout({ children }: ParentLayoutProps) {
           className={`parent-nav-item ${isHomeActive ? 'is-active' : ''}`}
           aria-label="Home"
         >
-          <span className="parent-nav-icon">
-            🏠
-          </span>
+          <span className="parent-nav-icon">🏠</span>
           <span>Home</span>
+        </NavLink>
+
+        <NavLink
+          to="/app/parent/perspective"
+          className={`parent-nav-item ${isPerspectiveActive ? 'is-active' : ''}`}
+          aria-label="Perspective"
+        >
+          <span className="parent-nav-icon">
+            <svg
+              width="22"
+              height="18"
+              viewBox="0 0 36 28"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              <circle cx="11" cy="14" r="9" stroke="currentColor" strokeWidth="2.5" fill="none" />
+              <circle cx="25" cy="14" r="9" stroke="currentColor" strokeWidth="2.5" fill="none" />
+              <path d="M14 11L18 14L14 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M22 11L18 14L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+          <span>Perspective</span>
         </NavLink>
 
         <NavLink
@@ -99,9 +116,7 @@ export default function ParentLayout({ children }: ParentLayoutProps) {
           className={`parent-nav-item ${isCircleActive ? 'is-active' : ''}`}
           aria-label="My Circle"
         >
-          <span className="parent-nav-icon">
-            👥
-          </span>
+          <span className="parent-nav-icon">👥</span>
           <span>My Circle</span>
         </NavLink>
 
@@ -110,9 +125,7 @@ export default function ParentLayout({ children }: ParentLayoutProps) {
           className={`parent-nav-item ${isNovaActive ? 'is-active' : ''}`}
           aria-label="Nova"
         >
-          <span className="parent-nav-icon">
-            ✨
-          </span>
+          <span className="parent-nav-icon">✨</span>
           <span>Nova</span>
         </NavLink>
 
@@ -121,9 +134,7 @@ export default function ParentLayout({ children }: ParentLayoutProps) {
           className={`parent-nav-item ${isProfileActive ? 'is-active' : ''}`}
           aria-label="Profile"
         >
-          <span className="parent-nav-icon">
-            👤
-          </span>
+          <span className="parent-nav-icon">👤</span>
           <span>Profile</span>
         </NavLink>
       </nav>
