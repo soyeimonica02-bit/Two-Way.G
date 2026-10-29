@@ -349,30 +349,15 @@ export default function HavenJournal() {
             className="haven-journal-logo"
           />
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {lockConfig.enabled && isUnlocked && (
-              <button
-                type="button"
-                className="haven-journal-secondary-btn"
-                style={{ minHeight: '40px', width: '40px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem' }}
-                onClick={handleLockJournal}
-                aria-label="Lock Journal"
-                title="Lock Journal"
-              >
-                🔒
-              </button>
-            )}
-
-            <button
-              type="button"
-              className="haven-journal-back"
-              aria-label="Go back"
-              title="Go back"
-              onClick={handleHeaderBack}
-            >
-              ←
-            </button>
-          </div>
+          <button
+            type="button"
+            className="haven-journal-back"
+            aria-label="Go back"
+            title="Go back"
+            onClick={handleHeaderBack}
+          >
+            ←
+          </button>
         </header>
 
         {/* LOCKED SCREEN */}
@@ -430,29 +415,12 @@ export default function HavenJournal() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            {/* INTRO TITLE & PRIVACY BADGE */}
-            <h1 className="haven-journal-title">Private Journal.</h1>
+            {/* JOURNAL TITLE & PROMPT */}
+            <h1 className="haven-journal-title">My Journal</h1>
 
             <p className="haven-journal-description">
-              Write it out. Put your thoughts somewhere they can simply exist.
+              What's on your mind today? Write it out freely.
             </p>
-
-            <div className="haven-journal-privacy">
-              <span className="haven-journal-privacy-badge">🔒</span>
-              <div style={{ flex: 1 }}>
-                <strong>Private space.</strong>
-                <p>Your journal entries stay in your Haven. Nothing is shared with parents or your Circle.</p>
-              </div>
-
-              <button
-                type="button"
-                className="haven-journal-lock-toggle"
-                onClick={handleToggleLockConfig}
-                aria-label={lockConfig.enabled ? 'Disable lock passcode' : 'Enable lock passcode'}
-              >
-                {lockConfig.enabled ? '🔒 Passcode Active' : '🔓 Add Passcode'}
-              </button>
-            </div>
 
             {/* AGE-OUT RESTRICTION CALM NOTICE */}
             {ageStatus.isAgedOut && (
@@ -516,9 +484,46 @@ export default function HavenJournal() {
               <div>
                 {/* TOOLBAR */}
                 <div className="haven-journal-topbar">
-                  <span className="haven-journal-counts-badge">
-                    {entries.length} {entries.length === 1 ? 'Entry' : 'Entries'} Saved
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                    <span className="haven-journal-counts-badge">
+                      {entries.length} {entries.length === 1 ? 'Entry' : 'Entries'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleToggleLockConfig}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        color: 'var(--tw-text-muted)',
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        padding: '2px 4px',
+                      }}
+                      aria-label={lockConfig.enabled ? 'Manage journal passcode' : 'Set journal passcode'}
+                    >
+                      {lockConfig.enabled ? 'Passcode: On' : 'Set Passcode'}
+                    </button>
+                    {lockConfig.enabled && isUnlocked && (
+                      <button
+                        type="button"
+                        onClick={handleLockJournal}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          fontSize: '0.82rem',
+                          fontWeight: 700,
+                          color: 'var(--tw-primary)',
+                          cursor: 'pointer',
+                          textDecoration: 'underline',
+                          padding: '2px 4px',
+                        }}
+                      >
+                        Lock now
+                      </button>
+                    )}
+                  </div>
 
                   <div className="haven-journal-actions-cluster">
                     {ageStatus.isAgedOut ? (
@@ -619,32 +624,28 @@ export default function HavenJournal() {
             {/* VIEW MODE: READ SINGLE ENTRY */}
             {/* ============================================================ */}
             {viewMode === 'read' && selectedEntry && (
-              <div className="haven-journal-read-container">
-                <div className="haven-journal-read-header">
-                  <div className="haven-journal-read-timestamps">
-                    <span className="haven-journal-read-time">
-                      Recorded: {formatJournalDateTime(selectedEntry.createdAt)}
-                    </span>
-                    {selectedEntry.updatedAt && selectedEntry.updatedAt !== selectedEntry.createdAt && (
-                      <span className="haven-journal-read-updated-time">
-                        Last edited: {formatJournalDateTime(selectedEntry.updatedAt)}
-                      </span>
-                    )}
+              <div className="haven-journal-stationery-page">
+                <div className="haven-journal-stationery-header">
+                  <div className="haven-journal-date-stamp">
+                    <span>📅</span>
+                    <span>{formatJournalDateTime(selectedEntry.createdAt)}</span>
                   </div>
 
-                  <div className="haven-journal-read-actions">
+                  <div className="haven-journal-editor-top-actions">
                     <button
                       type="button"
                       className="haven-journal-secondary-btn"
+                      style={{ minHeight: '36px', padding: '6px 14px', fontSize: '0.82rem' }}
                       onClick={() => setViewMode('list')}
                     >
-                      All Entries
+                      ← All Entries
                     </button>
 
                     {!ageStatus.isAgedOut && (
                       <button
                         type="button"
                         className="haven-journal-secondary-btn"
+                        style={{ minHeight: '36px', padding: '6px 14px', fontSize: '0.82rem' }}
                         onClick={handleStartEdit}
                       >
                         ✏️ Edit
@@ -654,6 +655,7 @@ export default function HavenJournal() {
                     <button
                       type="button"
                       className="haven-journal-danger-btn"
+                      style={{ minHeight: '36px', padding: '6px 14px', fontSize: '0.82rem' }}
                       onClick={() => setEntryToDelete(selectedEntry)}
                       title="Delete Entry"
                     >
@@ -663,34 +665,20 @@ export default function HavenJournal() {
                 </div>
 
                 {selectedEntry.title && (
-                  <h2 className="haven-journal-read-title">{selectedEntry.title}</h2>
+                  <h2 className="haven-journal-stationery-read-title">{selectedEntry.title}</h2>
                 )}
 
-                <div className="haven-journal-read-body">
+                <div className="haven-journal-stationery-read-body">
                   {selectedEntry.body}
                 </div>
 
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    borderTop: '2px solid var(--tw-border)',
-                    paddingTop: '16px',
-                    fontSize: '0.82rem',
-                    color: 'var(--tw-text-muted)',
-                    fontWeight: 700,
-                  }}
-                >
+                <div className="haven-journal-stationery-footer">
                   <span>{selectedEntry.body.length} characters</span>
-                  <button
-                    type="button"
-                    className="haven-journal-secondary-btn"
-                    style={{ minHeight: '40px', padding: '6px 16px' }}
-                    onClick={() => setViewMode('list')}
-                  >
-                    ← Back to Journal
-                  </button>
+                  {selectedEntry.updatedAt && selectedEntry.updatedAt !== selectedEntry.createdAt && (
+                    <span className="haven-journal-stationery-note">
+                      Last edited {formatJournalDateTime(selectedEntry.updatedAt)}
+                    </span>
+                  )}
                 </div>
               </div>
             )}
@@ -699,108 +687,20 @@ export default function HavenJournal() {
             {/* VIEW MODE: NEW / EDIT (EDITOR) */}
             {/* ============================================================ */}
             {(viewMode === 'new' || viewMode === 'edit') && (
-              <div className="haven-journal-editor">
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    marginBottom: '4px',
-                    flexWrap: 'wrap',
-                    gap: '10px',
-                  }}
-                >
-                  <h3
-                    style={{
-                      margin: 0,
-                      fontFamily: 'var(--font-display, inherit)',
-                      fontSize: '1.25rem',
-                      fontWeight: 900,
-                    }}
-                  >
-                    {viewMode === 'new' ? 'New Journal Entry' : 'Edit Journal Entry'}
-                  </h3>
+              <div className="haven-journal-stationery-page">
+                <div className="haven-journal-stationery-header">
+                  <div className="haven-journal-date-stamp">
+                    <span>📅</span>
+                    <span>
+                      {selectedEntry ? formatJournalDateTime(selectedEntry.createdAt) : 'Today'}
+                    </span>
+                  </div>
 
-                  <button
-                    type="button"
-                    className="haven-journal-secondary-btn"
-                    style={{ minHeight: '38px', padding: '6px 14px', fontSize: '0.78rem' }}
-                    onClick={handleCancelEditor}
-                  >
-                    Cancel
-                  </button>
-                </div>
-
-                {/* TITLE INPUT (OPTIONAL) */}
-                <div>
-                  <label
-                    htmlFor="journal-title"
-                    style={{
-                      display: 'block',
-                      fontSize: '0.75rem',
-                      fontWeight: 900,
-                      letterSpacing: '0.08em',
-                      textTransform: 'uppercase',
-                      color: 'var(--tw-primary)',
-                      marginBottom: '6px',
-                    }}
-                  >
-                    Entry Title (Optional)
-                  </label>
-                  <input
-                    id="journal-title"
-                    type="text"
-                    className="haven-journal-title-input"
-                    value={editorTitle}
-                    onChange={(e) => {
-                      setEditorTitle(e.target.value);
-                      if (errorMessage) setErrorMessage(null);
-                    }}
-                    placeholder="Give this entry a title..."
-                    maxLength={120}
-                  />
-                </div>
-
-                {/* BODY TEXTAREA */}
-                <div>
-                  <label
-                    htmlFor="journal-body"
-                    style={{
-                      display: 'block',
-                      fontSize: '0.75rem',
-                      fontWeight: 900,
-                      letterSpacing: '0.08em',
-                      textTransform: 'uppercase',
-                      color: 'var(--tw-primary)',
-                      marginBottom: '6px',
-                    }}
-                  >
-                    Journal Entry
-                  </label>
-                  <textarea
-                    id="journal-body"
-                    className="haven-journal-textarea"
-                    value={editorBody}
-                    onChange={(e) => {
-                      setEditorBody(e.target.value);
-                      if (errorMessage) setErrorMessage(null);
-                    }}
-                    placeholder="Write whatever is on your mind..."
-                    aria-label="Journal entry body"
-                    rows={12}
-                    autoFocus
-                  />
-                </div>
-
-                <div className="haven-journal-meta">
-                  <span className="haven-journal-count">
-                    {editorBody.length} {editorBody.length === 1 ? 'character' : 'characters'}
-                  </span>
-
-                  <div style={{ display: 'flex', gap: '10px' }}>
+                  <div className="haven-journal-editor-top-actions">
                     <button
                       type="button"
                       className="haven-journal-secondary-btn"
+                      style={{ minHeight: '36px', padding: '6px 14px', fontSize: '0.82rem' }}
                       onClick={handleCancelEditor}
                     >
                       Cancel
@@ -809,12 +709,55 @@ export default function HavenJournal() {
                     <button
                       type="button"
                       className="haven-journal-save"
+                      style={{ minHeight: '36px', padding: '6px 16px', fontSize: '0.86rem' }}
                       onClick={handleSave}
                       disabled={isSaving}
                     >
                       {isSaving ? 'Saving…' : viewMode === 'edit' ? 'Update Entry' : 'Save Entry'}
                     </button>
                   </div>
+                </div>
+
+                {/* TITLE INPUT (OPTIONAL) */}
+                <div className="haven-journal-paper-field">
+                  <input
+                    id="journal-title"
+                    type="text"
+                    className="haven-journal-stationery-title"
+                    value={editorTitle}
+                    onChange={(e) => {
+                      setEditorTitle(e.target.value);
+                      if (errorMessage) setErrorMessage(null);
+                    }}
+                    placeholder="Entry title (optional)..."
+                    maxLength={120}
+                  />
+                </div>
+
+                {/* BODY TEXTAREA */}
+                <div className="haven-journal-paper-field">
+                  <textarea
+                    id="journal-body"
+                    className="haven-journal-stationery-body"
+                    value={editorBody}
+                    onChange={(e) => {
+                      setEditorBody(e.target.value);
+                      if (errorMessage) setErrorMessage(null);
+                    }}
+                    placeholder="Dear Journal,&#10;&#10;What's on your mind today? Write freely..."
+                    aria-label="Journal entry body"
+                    rows={12}
+                    autoFocus
+                  />
+                </div>
+
+                <div className="haven-journal-stationery-footer">
+                  <span className="haven-journal-count">
+                    {editorBody.length} {editorBody.length === 1 ? 'character' : 'characters'}
+                  </span>
+                  <span className="haven-journal-stationery-note">
+                    Saved privately on your device
+                  </span>
                 </div>
               </div>
             )}

@@ -426,17 +426,9 @@ function Profile() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
           >
-            <p className="profile-eyebrow">
-              ACCOUNT
-            </p>
-
             <h1>
               {name || 'Your Profile'}.
             </h1>
-
-            <p className="profile-description">
-              Manage your personal details, profile picture, and identity.
-            </p>
           </motion.section>
 
           {/* AVATAR + BASIC DETAILS */}
@@ -568,19 +560,46 @@ function Profile() {
 
           {/* EDITABLE DETAILS */}
           <section className="profile-section">
-            <div className="profile-section-header">
-              <span className="profile-section-label">
-                PERSONAL DETAILS
-              </span>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+                marginBottom: '16px',
+              }}
+            >
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: '1.2rem',
+                  fontWeight: 800,
+                  letterSpacing: '-0.02em',
+                  color: 'var(--tw-text)',
+                }}
+              >
+                Personal Details
+              </h2>
 
               {isEditing ? (
-                <button
-                  type="button"
-                  className="profile-edit-btn"
-                  onClick={handleSave}
-                >
-                  Save Changes
-                </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    className="profile-edit-btn"
+                    onClick={handleSave}
+                  >
+                    Save Changes
+                  </button>
+                  <button
+                    type="button"
+                    className="profile-edit-btn"
+                    onClick={() => setIsEditing(false)}
+                    style={{ background: 'transparent' }}
+                  >
+                    Cancel
+                  </button>
+                </div>
               ) : (
                 <button
                   type="button"

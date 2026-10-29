@@ -33,10 +33,6 @@ function MyHaven() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <p className="haven-eyebrow">
-            PRIVATE · JUST FOR YOU
-          </p>
-
           <h1>
             My
             <br />
@@ -79,7 +75,7 @@ function MyHaven() {
 
           <div className="haven-options">
 
-            {/* PRIVATE JOURNAL */}
+            {/* MY JOURNAL */}
             <button
               type="button"
               onClick={() =>
@@ -92,7 +88,7 @@ function MyHaven() {
                 <span>LONG-FORM REFLECTION</span>
 
                 <h2>
-                  Private Journal.
+                  My Journal
                 </h2>
 
                 <p>

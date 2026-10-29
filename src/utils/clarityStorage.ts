@@ -7,6 +7,10 @@ export interface ClaritySavedDraft {
   expressText: string;
   primaryEmotion: string;
   coreNeed: string;
+  selectedFeelings?: string[];
+  otherFeeling?: string;
+  selectedNeeds?: string[];
+  otherNeed?: string;
   selectedTone: 'gentle' | 'direct' | 'balanced';
   rephrasedText: string;
   customRephrase: string;
@@ -84,6 +88,10 @@ export function saveDraft(
     expressText: string;
     primaryEmotion: string;
     coreNeed: string;
+    selectedFeelings?: string[];
+    otherFeeling?: string;
+    selectedNeeds?: string[];
+    otherNeed?: string;
     selectedTone: 'gentle' | 'direct' | 'balanced';
     rephrasedText: string;
     customRephrase: string;
@@ -106,6 +114,10 @@ export function saveDraft(
           expressText: draftData.expressText,
           primaryEmotion: draftData.primaryEmotion,
           coreNeed: draftData.coreNeed,
+          selectedFeelings: draftData.selectedFeelings ?? target.selectedFeelings,
+          otherFeeling: draftData.otherFeeling ?? target.otherFeeling,
+          selectedNeeds: draftData.selectedNeeds ?? target.selectedNeeds,
+          otherNeed: draftData.otherNeed ?? target.otherNeed,
           selectedTone: draftData.selectedTone,
           rephrasedText: draftData.rephrasedText,
           customRephrase: draftData.customRephrase,
@@ -127,6 +139,10 @@ export function saveDraft(
       expressText: draftData.expressText,
       primaryEmotion: draftData.primaryEmotion,
       coreNeed: draftData.coreNeed,
+      selectedFeelings: draftData.selectedFeelings,
+      otherFeeling: draftData.otherFeeling,
+      selectedNeeds: draftData.selectedNeeds,
+      otherNeed: draftData.otherNeed,
       selectedTone: draftData.selectedTone,
       rephrasedText: draftData.rephrasedText,
       customRephrase: draftData.customRephrase,

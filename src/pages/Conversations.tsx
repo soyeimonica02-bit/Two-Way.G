@@ -65,11 +65,38 @@ const STAGES: ClarityStageConfig[] = [
 
 const STORAGE_KEY_ACTIVE = 'twoway_clarity_draft';
 
+const FEELING_OPTIONS = [
+  'Hurt',
+  'Angry',
+  'Sad',
+  'Anxious',
+  'Overwhelmed',
+  'Disappointed',
+  'Confused',
+  'Lonely',
+  'Frustrated',
+  'Relieved',
+];
+
+const NEED_OPTIONS = [
+  'To be understood',
+  'Someone to listen',
+  'Reassurance',
+  'Space and time',
+  'An apology',
+  'Help solving the problem',
+  'Support without judgment',
+];
+
 interface ClarityActiveDraft {
   id?: string;
   expressText: string;
   primaryEmotion: string;
   coreNeed: string;
+  selectedFeelings?: string[];
+  otherFeeling?: string;
+  selectedNeeds?: string[];
+  otherNeed?: string;
   selectedTone: 'gentle' | 'direct' | 'balanced';
   rephrasedText: string;
   customRephrase: string;
@@ -112,7 +139,27 @@ export default function Conversations() {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_ACTIVE);
       if (saved) {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        const feelings = Array.isArray(parsed.selectedFeelings)
+          ? parsed.selectedFeelings
+          : parsed.primaryEmotion
+            ? parsed.primaryEmotion.split(',').map((s: string) => s.trim()).filter(Boolean)
+            : ['Frustrated'];
+        const needs = Array.isArray(parsed.selectedNeeds)
+          ? parsed.selectedNeeds
+          : parsed.coreNeed
+            ? [parsed.coreNeed]
+            : ['To be understood'];
+
+        return {
+          ...parsed,
+          selectedFeelings: feelings,
+          otherFeeling: parsed.otherFeeling || '',
+          selectedNeeds: needs,
+          otherNeed: parsed.otherNeed || '',
+          primaryEmotion: parsed.primaryEmotion || feelings.join(', '),
+          coreNeed: parsed.coreNeed || needs.join(', '),
+        };
       }
     } catch (e) {
       console.error('Failed to load active Clarity draft:', e);
@@ -120,7 +167,11 @@ export default function Conversations() {
     return {
       expressText: '',
       primaryEmotion: 'Frustrated',
-      coreNeed: 'Feeling heard and understood',
+      coreNeed: 'To be understood',
+      selectedFeelings: ['Frustrated'],
+      otherFeeling: '',
+      selectedNeeds: ['To be understood'],
+      otherNeed: '',
       selectedTone: 'balanced',
       rephrasedText: '',
       customRephrase: '',
@@ -202,11 +253,72 @@ export default function Conversations() {
     const raw = text.trim();
     if (!raw) return { balanced: '', gentle: '', direct: '' };
 
+    const em = emotion ? emotion.toLowerCase() : 'overwhelmed';
+    const nd = need ? need.toLowerCase() : 'to be understood';
+
     return {
-      balanced: `I've been feeling ${emotion.toLowerCase()} lately, and it's really important to me that ${need.toLowerCase()}. When this happens: "${raw}", I want us to talk through it calmly so we understand each other.`,
-      gentle: `I care a lot about our relationship, but I've been feeling a bit ${emotion.toLowerCase()}. What I really need right now is ${need.toLowerCase()}. Could we find a quiet time to talk about this?`,
-      direct: `I want to be direct with you about how I'm feeling: I feel ${emotion.toLowerCase()}. What I need from this is ${need.toLowerCase()}. Specifically: ${raw}.`,
+      balanced: `I've been feeling ${em} lately. What I really need right now is ${nd}. When this happens: "${raw}", I want us to talk through it calmly so we understand each other.`,
+      gentle: `I care a lot about our relationship, but I've been feeling ${em}. What would help me most right now is ${nd}. Could we find a quiet time to talk about this?`,
+      direct: `I want to be direct with you about how I'm feeling: I feel ${em}. What I need is ${nd}. Specifically: ${raw}.`,
     };
+  };
+
+  const handleToggleFeeling = (emotion: string) => {
+    setDraft((prev) => {
+      const current = prev.selectedFeelings || [];
+      const updated = current.includes(emotion)
+        ? current.filter((e) => e !== emotion)
+        : [...current, emotion];
+
+      const all = [...updated, (prev.otherFeeling || '').trim()].filter(Boolean);
+      return {
+        ...prev,
+        selectedFeelings: updated,
+        primaryEmotion: all.join(', '),
+      };
+    });
+    setValidationError(null);
+  };
+
+  const handleOtherFeelingChange = (val: string) => {
+    setDraft((prev) => {
+      const all = [...(prev.selectedFeelings || []), val.trim()].filter(Boolean);
+      return {
+        ...prev,
+        otherFeeling: val,
+        primaryEmotion: all.join(', '),
+      };
+    });
+    setValidationError(null);
+  };
+
+  const handleToggleNeed = (need: string) => {
+    setDraft((prev) => {
+      const current = prev.selectedNeeds || [];
+      const updated = current.includes(need)
+        ? current.filter((n) => n !== need)
+        : [...current, need];
+
+      const all = [...updated, (prev.otherNeed || '').trim()].filter(Boolean);
+      return {
+        ...prev,
+        selectedNeeds: updated,
+        coreNeed: all.join(', '),
+      };
+    });
+    setValidationError(null);
+  };
+
+  const handleOtherNeedChange = (val: string) => {
+    setDraft((prev) => {
+      const all = [...(prev.selectedNeeds || []), val.trim()].filter(Boolean);
+      return {
+        ...prev,
+        otherNeed: val,
+        coreNeed: all.join(', '),
+      };
+    });
+    setValidationError(null);
   };
 
   const rephraseOptions = generateRephraseOptions(
@@ -225,6 +337,10 @@ export default function Conversations() {
       expressText: draft.expressText,
       primaryEmotion: draft.primaryEmotion,
       coreNeed: draft.coreNeed,
+      selectedFeelings: draft.selectedFeelings,
+      otherFeeling: draft.otherFeeling,
+      selectedNeeds: draft.selectedNeeds,
+      otherNeed: draft.otherNeed,
       selectedTone: draft.selectedTone,
       rephrasedText: draft.rephrasedText,
       customRephrase: draft.customRephrase,
@@ -247,11 +363,26 @@ export default function Conversations() {
   // Reopen and resume a saved draft
   const handleResumeDraft = (saved: ClaritySavedDraft) => {
     setActiveDraftId(saved.id);
+    const parsedFeelings = Array.isArray(saved.selectedFeelings)
+      ? saved.selectedFeelings
+      : saved.primaryEmotion
+        ? saved.primaryEmotion.split(',').map((s) => s.trim()).filter(Boolean)
+        : [];
+    const parsedNeeds = Array.isArray(saved.selectedNeeds)
+      ? saved.selectedNeeds
+      : saved.coreNeed
+        ? [saved.coreNeed]
+        : [];
+
     setDraft({
       id: saved.id,
       expressText: saved.expressText,
       primaryEmotion: saved.primaryEmotion,
       coreNeed: saved.coreNeed,
+      selectedFeelings: parsedFeelings,
+      otherFeeling: saved.otherFeeling || '',
+      selectedNeeds: parsedNeeds,
+      otherNeed: saved.otherNeed || '',
       selectedTone: saved.selectedTone,
       rephrasedText: saved.rephrasedText,
       customRephrase: saved.customRephrase,
@@ -294,8 +425,12 @@ export default function Conversations() {
     setDecisionSubStep('options');
     setDraft({
       expressText: '',
-      primaryEmotion: 'Frustrated',
-      coreNeed: 'Feeling heard and understood',
+      primaryEmotion: '',
+      coreNeed: '',
+      selectedFeelings: [],
+      otherFeeling: '',
+      selectedNeeds: [],
+      otherNeed: '',
       selectedTone: 'balanced',
       rephrasedText: '',
       customRephrase: '',
@@ -323,22 +458,39 @@ export default function Conversations() {
     }
 
     if (currentStage.id === 'understand') {
-      if (!draft.primaryEmotion.trim()) {
-        setValidationError('Please select or describe the primary emotion.');
+      const activeFeelings = [
+        ...(draft.selectedFeelings || []),
+        ...(draft.otherFeeling ? [draft.otherFeeling.trim()] : []),
+      ].filter(Boolean);
+
+      if (activeFeelings.length === 0 && !draft.primaryEmotion.trim()) {
+        setValidationError('Please select or describe at least one feeling before continuing.');
         return;
       }
-      if (!draft.coreNeed.trim()) {
-        setValidationError('Please select or specify your core underlying need.');
+
+      const activeNeeds = [
+        ...(draft.selectedNeeds || []),
+        ...(draft.otherNeed ? [draft.otherNeed.trim()] : []),
+      ].filter(Boolean);
+
+      if (activeNeeds.length === 0 && !draft.coreNeed.trim()) {
+        setValidationError('Please select or describe what you need most before continuing.');
         return;
       }
+
+      const effectiveEmotion = activeFeelings.join(', ') || draft.primaryEmotion;
+      const effectiveNeed = activeNeeds.join(', ') || draft.coreNeed;
+
       const initialOptions = generateRephraseOptions(
         draft.expressText,
-        draft.primaryEmotion,
-        draft.coreNeed,
+        effectiveEmotion,
+        effectiveNeed,
       );
       if (!draft.customRephrase) {
         setDraft((prev) => ({
           ...prev,
+          primaryEmotion: effectiveEmotion,
+          coreNeed: effectiveNeed,
           rephrasedText: initialOptions[prev.selectedTone],
           customRephrase: initialOptions[prev.selectedTone],
         }));
@@ -1009,18 +1161,24 @@ export default function Conversations() {
                         </p>
                       </div>
 
-                      {/* Emotion Picker */}
-                      <div style={{ marginBottom: '22px' }}>
-                        <label
-                          style={{
-                            display: 'block',
-                            fontSize: '0.88rem',
-                            fontWeight: 800,
-                            marginBottom: '10px',
-                          }}
-                        >
-                          1. What emotion is driving this?
-                        </label>
+                      {/* Emotion / Feelings Picker */}
+                      <div style={{ marginBottom: '26px' }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+                          <label
+                            style={{
+                              display: 'block',
+                              fontSize: '0.92rem',
+                              fontWeight: 800,
+                              color: 'var(--tw-text)',
+                            }}
+                          >
+                            1. What feelings are underneath?
+                          </label>
+                          <span style={{ fontSize: '0.74rem', color: 'var(--tw-text-muted)', fontWeight: 600 }}>
+                            Select all that apply, or add your own
+                          </span>
+                        </div>
+
                         <div
                           style={{
                             display: 'flex',
@@ -1028,27 +1186,14 @@ export default function Conversations() {
                             gap: '8px',
                           }}
                         >
-                          {[
-                            'Frustrated',
-                            'Hurt',
-                            'Overwhelmed',
-                            'Misunderstood',
-                            'Worried',
-                            'Unappreciated',
-                            'Anxious',
-                          ].map((emotion) => {
-                            const isSelected = draft.primaryEmotion === emotion;
+                          {FEELING_OPTIONS.map((emotion) => {
+                            const isSelected = draft.selectedFeelings?.includes(emotion);
                             return (
                               <button
                                 key={emotion}
                                 type="button"
-                                onClick={() => {
-                                  setDraft((prev) => ({
-                                    ...prev,
-                                    primaryEmotion: emotion,
-                                  }));
-                                  setValidationError(null);
-                                }}
+                                onClick={() => handleToggleFeeling(emotion)}
+                                aria-pressed={isSelected}
                                 style={{
                                   padding: '8px 14px',
                                   borderRadius: '10px',
@@ -1060,59 +1205,96 @@ export default function Conversations() {
                                     ? 'var(--tw-primary-text, #ffffff)'
                                     : 'var(--tw-text)',
                                   fontWeight: 750,
-                                  fontSize: '0.82rem',
+                                  fontSize: '0.84rem',
                                   cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
                                   boxShadow: isSelected
-                                    ? '2px 2px 0px var(--tw-border)'
+                                    ? '2.5px 2.5px 0px var(--tw-border)'
                                     : 'none',
+                                  transform: isSelected ? 'translate(-1px, -1px)' : 'none',
                                   transition: 'all 120ms ease',
                                 }}
                               >
-                                {emotion}
+                                <span>{isSelected ? '✓' : '+'}</span>
+                                <span>{emotion}</span>
                               </button>
                             );
                           })}
                         </div>
+
+                        {/* Other feeling free-text input */}
+                        <div style={{ marginTop: '12px' }}>
+                          <label
+                            htmlFor="other-feeling-input"
+                            style={{
+                              display: 'block',
+                              fontSize: '0.78rem',
+                              fontWeight: 750,
+                              color: 'var(--tw-text-muted)',
+                              marginBottom: '6px',
+                            }}
+                          >
+                            Other feeling:
+                          </label>
+                          <input
+                            id="other-feeling-input"
+                            type="text"
+                            value={draft.otherFeeling || ''}
+                            onChange={(e) => handleOtherFeelingChange(e.target.value)}
+                            placeholder="Describe any emotion not listed (e.g. unheard, exhausted, numb)..."
+                            style={{
+                              width: '100%',
+                              boxSizing: 'border-box',
+                              padding: '10px 14px',
+                              borderRadius: '10px',
+                              border: '2px solid var(--tw-border)',
+                              background: 'var(--tw-surface)',
+                              color: 'var(--tw-text)',
+                              fontSize: '0.88rem',
+                              outline: 'none',
+                              transition: 'border-color 120ms ease',
+                            }}
+                          />
+                        </div>
                       </div>
 
-                      {/* Core Need Picker */}
+                      {/* What do you need most? Picker */}
                       <div>
-                        <label
-                          style={{
-                            display: 'block',
-                            fontSize: '0.88rem',
-                            fontWeight: 800,
-                            marginBottom: '10px',
-                          }}
-                        >
-                          2. What do you need most right now?
-                        </label>
+                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+                          <label
+                            style={{
+                              display: 'block',
+                              fontSize: '0.92rem',
+                              fontWeight: 800,
+                              color: 'var(--tw-text)',
+                            }}
+                          >
+                            2. What do you need most?
+                          </label>
+                          <span style={{ fontSize: '0.74rem', color: 'var(--tw-text-muted)', fontWeight: 600 }}>
+                            Choose what would help, or describe in your words
+                          </span>
+                        </div>
+
                         <div
                           style={{
                             display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
                             gap: '8px',
                           }}
                         >
-                          {[
-                            'Feeling heard and understood',
-                            'Personal space and respect for boundaries',
-                            'Clear, honest reassurance',
-                            'A collaborative solution without arguing',
-                          ].map((need) => {
-                            const isSelected = draft.coreNeed === need;
+                          {NEED_OPTIONS.map((need) => {
+                            const isSelected = draft.selectedNeeds?.includes(need);
                             return (
                               <button
                                 key={need}
                                 type="button"
-                                onClick={() => {
-                                  setDraft((prev) => ({
-                                    ...prev,
-                                    coreNeed: need,
-                                  }));
-                                  setValidationError(null);
-                                }}
+                                onClick={() => handleToggleNeed(need)}
+                                aria-pressed={isSelected}
                                 style={{
-                                  padding: '10px 16px',
+                                  padding: '11px 15px',
                                   textAlign: 'left',
                                   borderRadius: '10px',
                                   border: '2px solid var(--tw-border)',
@@ -1122,19 +1304,81 @@ export default function Conversations() {
                                   color: isSelected
                                     ? 'var(--tw-primary-text, #ffffff)'
                                     : 'var(--tw-text)',
-                                  fontWeight: 700,
-                                  fontSize: '0.85rem',
+                                  fontWeight: 750,
+                                  fontSize: '0.86rem',
                                   cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '10px',
                                   boxShadow: isSelected
-                                    ? '2px 2px 0px var(--tw-border)'
+                                    ? '2.5px 2.5px 0px var(--tw-border)'
                                     : 'none',
+                                  transform: isSelected ? 'translate(-1px, -1px)' : 'none',
                                   transition: 'all 120ms ease',
                                 }}
                               >
-                                {isSelected ? '✓ ' : '○ '} {need}
+                                <span
+                                  style={{
+                                    width: '18px',
+                                    height: '18px',
+                                    borderRadius: '5px',
+                                    border: isSelected
+                                      ? '2px solid var(--tw-primary-text, #ffffff)'
+                                      : '2px solid var(--tw-border)',
+                                    background: isSelected
+                                      ? 'var(--tw-primary-text, #ffffff)'
+                                      : 'transparent',
+                                    color: 'var(--tw-primary)',
+                                    display: 'grid',
+                                    placeItems: 'center',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 900,
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {isSelected ? '✓' : ''}
+                                </span>
+                                <span>{need}</span>
                               </button>
                             );
                           })}
+                        </div>
+
+                        {/* Other / Something else free-text */}
+                        <div style={{ marginTop: '12px' }}>
+                          <label
+                            htmlFor="other-need-input"
+                            style={{
+                              display: 'block',
+                              fontSize: '0.78rem',
+                              fontWeight: 750,
+                              color: 'var(--tw-text-muted)',
+                              marginBottom: '6px',
+                            }}
+                          >
+                            Other / Something else (in your own words):
+                          </label>
+                          <textarea
+                            id="other-need-input"
+                            value={draft.otherNeed || ''}
+                            onChange={(e) => handleOtherNeedChange(e.target.value)}
+                            placeholder="Explain what you need in your own words rather than choosing a preset..."
+                            rows={2}
+                            style={{
+                              width: '100%',
+                              boxSizing: 'border-box',
+                              padding: '10px 14px',
+                              borderRadius: '10px',
+                              border: '2px solid var(--tw-border)',
+                              background: 'var(--tw-surface)',
+                              color: 'var(--tw-text)',
+                              fontSize: '0.88rem',
+                              lineHeight: 1.55,
+                              outline: 'none',
+                              resize: 'vertical',
+                              transition: 'border-color 120ms ease',
+                            }}
+                          />
                         </div>
                       </div>
                     </div>
